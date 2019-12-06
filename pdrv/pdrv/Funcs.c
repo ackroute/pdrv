@@ -107,14 +107,9 @@ PVOID GetModuleBase(IN char* ModuleName)
 	NTSTATUS status = STATUS_SUCCESS;
 	ULONG bytes = 0;
 	PRTL_PROCESS_MODULES pMods = NULL;
-	PVOID checkPtr = NULL;
 	UNICODE_STRING routineName;
 
 	RtlUnicodeStringInit(&routineName, L"NtOpenFile");
-
-	checkPtr = MmGetSystemRoutineAddress(&routineName);
-	if (checkPtr == NULL)
-		return NULL;
 
 	// Protect from UserMode AV
 	status = ZwQuerySystemInformation(SystemModuleInformation, 0, bytes, &bytes);
@@ -132,13 +127,10 @@ PVOID GetModuleBase(IN char* ModuleName)
 
 	if (NT_SUCCESS(status))
 	{
-		PRTL_PROCESS_MODULE_INFORMATION pMod = pMods->Modules;
-
 		for (ULONG i = 0; i < pMods->NumberOfModules; i++)
 		{
 			// System routine is inside module
-			if (checkPtr >= pMod[i].ImageBase &&
-				checkPtr < (PVOID)((PUCHAR)pMod[i].ImageBase + pMod[i].ImageSize))
+			if ((PVOID)pMods->Modules[i].ImageBase > (PVOID)0x8000000000000000)
 			{
 				char* pDrvName = (char*)(pMods->Modules[i].FullPathName) + pMods->Modules[i].OffsetToFileName;
 				if (_stricmp(pDrvName, ModuleName) == 0)
