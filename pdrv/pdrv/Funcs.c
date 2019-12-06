@@ -102,7 +102,7 @@ NTSTATUS ResumeThread(__in HANDLE ThreadHandle)
 /// </summary>
 /// <param name="ModuleName">Name of module</param>
 /// <returns>Found address, 0 if not found</returns>
-PVOID GetModuleBase(IN char* ModuleName)
+PVOID GetModuleBase(IN char* ModuleName, OUT ULONG64* BaseAddr, OUT ULONG* DriverSize)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	ULONG bytes = 0;
@@ -133,8 +133,11 @@ PVOID GetModuleBase(IN char* ModuleName)
 			if ((PVOID)pMods->Modules[i].ImageBase > (PVOID)0x8000000000000000)
 			{
 				char* pDrvName = (char*)(pMods->Modules[i].FullPathName) + pMods->Modules[i].OffsetToFileName;
-				if (_stricmp(pDrvName, ModuleName) == 0)
+				if (_stricmp(pDrvName, ModuleName) == 0) {
+					*BaseAddr = (ULONG64)(pMods->Modules[i].ImageBase);
+					*DriverSize = (ULONG64)(pMods->Modules[i].ImageSize);
 					return (PVOID)(pMods->Modules[i].ImageBase);
+				}
 			}
 		}
 	}
@@ -143,4 +146,149 @@ PVOID GetModuleBase(IN char* ModuleName)
 		ExFreePoolWithTag(pMods, POOL_TAG);
 
 	return 0;
+}
+
+// TODO: Comment
+/// <summary>
+/// ApcpQuerySystemProcessInformation
+/// </summary>
+/// <returns>Status</returns>
+NTSTATUS ApcpQuerySystemProcessInformation(PSYSTEM_PROCESS_INFORMATION* SystemInfo)
+{
+	PSYSTEM_PROCESS_INFORMATION pBuffer = NULL;
+	ULONG BufferSize = 0;
+	ULONG RequiredSize = 0;
+
+	NTSTATUS status = STATUS_SUCCESS;
+	while ((status = ZwQuerySystemInformation(
+		SystemProcessInformation,
+		pBuffer,
+		BufferSize,
+		&RequiredSize//retn Length
+	)) == STATUS_INFO_LENGTH_MISMATCH)
+	{
+		BufferSize = RequiredSize;
+		pBuffer = (PSYSTEM_PROCESS_INFORMATION)ExAllocatePool(PagedPool, BufferSize);
+	}
+
+	if (!NT_SUCCESS(status))
+	{
+		if (pBuffer != NULL)
+		{
+			ExFreePool(pBuffer);
+		}
+
+		return status;
+	}
+	*SystemInfo = pBuffer;
+	return status;
+}
+
+// TODO: Comment
+/// <summary>
+/// Gets information about thread
+/// </summary>
+/// <returns>Status</returns>
+NTSTATUS GetProcessThreadInfo(IN ULONG Pid, OUT ULONG* ThreadNuber, OUT PULONG64 Tid, OUT PULONG64 StartAddr)
+{
+	PEPROCESS pEProcess;
+	PSYSTEM_PROCESS_INFORMATION OriginalSystemProcessInfo = NULL;
+	NTSTATUS status = PsLookupProcessByProcessId((HANDLE)Pid, &pEProcess);
+	if (!NT_SUCCESS(status))
+	{
+		return status;
+	}
+	if (MmIsAddressValid(ThreadNuber) == 0)
+	{
+		status = STATUS_UNSUCCESSFUL;
+		return status;
+	}
+	if (MmIsAddressValid(StartAddr) == 0)
+	{
+		status = STATUS_UNSUCCESSFUL;
+		return status;
+	}
+	if (MmIsAddressValid(Tid) == 0)
+	{
+		status = STATUS_UNSUCCESSFUL;
+		return status;
+	}
+	status = ApcpQuerySystemProcessInformation(&OriginalSystemProcessInfo);
+	if (!NT_SUCCESS(status))
+	{
+		ObDereferenceObject(pEProcess);
+		return status;
+	}
+	PSYSTEM_PROCESS_INFORMATION SystemProcessInfo = OriginalSystemProcessInfo;
+	status = STATUS_NOT_FOUND;
+	do
+	{
+		if (SystemProcessInfo->UniqueProcessId == PsGetProcessId(pEProcess))
+		{
+			status = STATUS_SUCCESS;
+			break;
+		}
+
+		SystemProcessInfo = (PSYSTEM_PROCESS_INFORMATION)((PUCHAR)SystemProcessInfo + SystemProcessInfo->NextEntryOffset);
+	} while (SystemProcessInfo->NextEntryOffset != 0);
+
+	if (!NT_SUCCESS(status))
+	{
+		ObDereferenceObject(pEProcess);
+		ExFreePool(OriginalSystemProcessInfo);
+		return status;
+	}
+	*ThreadNuber = SystemProcessInfo->NumberOfThreads;
+
+	for (ULONG Index = 0; Index < SystemProcessInfo->NumberOfThreads; ++Index)
+	{
+		HANDLE UniqueThreadId = SystemProcessInfo->Threads[Index].ClientId.UniqueThread;
+		Tid[Index] = (ULONG64)UniqueThreadId;
+		StartAddr[Index] = (ULONG64)SystemProcessInfo->Threads[Index].StartAddress;
+	}
+
+	ObDereferenceObject(pEProcess);
+	return status;
+}
+
+/// <summary>
+/// Gets driver threads
+/// </summary>
+/// <param name="DriverName">Name of module</param>
+/// <param name="ThreadNuber">Number of threads</param>
+/// <param name="Tid">Threads IDs (array)</param>
+/// <returns>Found address, 0 if not found</returns>
+NTSTATUS GetDriverThreads(char* DriverName, OUT ULONG* ThreadNuber, OUT PULONG64 Tid)
+{
+	ULONG64				DriverBaseAddr = 0;
+	ULONG    			DriverSize = 0;
+	ULONG				Number = 0;
+	ULONG64              __Tid[0x256] = { 0 };
+	ULONG64              __ThreadStartAddr[0x256] = { 0 };
+	NTSTATUS            Status = STATUS_UNSUCCESSFUL;
+	ULONG               Count = 0;
+	GetModuleBase(DriverName, &DriverBaseAddr, &DriverSize);
+
+	if (DriverBaseAddr == 0 || DriverSize == 0) {
+		Log("[-] Driver base is 0");
+		return Status;
+	}
+	Status = GetProcessThreadInfo(4, &Number, __Tid, __ThreadStartAddr);
+	if (!NT_SUCCESS(Status)) {
+		Log("[-] Failed to get thread info");
+		return Status;
+	}
+	for (ULONG i = 0; i < Number; i++)
+	{
+		if (__ThreadStartAddr[i] >= DriverBaseAddr)
+		{
+			if (__ThreadStartAddr[i] <= DriverBaseAddr + DriverSize)
+			{
+				Tid[Count] = __Tid[i];
+				Count++;
+			}
+		}
+	}
+	*ThreadNuber = Count;
+	return STATUS_SUCCESS;
 }

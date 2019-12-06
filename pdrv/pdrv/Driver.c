@@ -32,9 +32,15 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 
 	PSYSTEM_SERVICE_DESCRIPTOR_TABLE test = GetSSDTBase();
 	Log("SSDT: %p", (void*)test);
-	
-	PVOID test2 = GetModuleBase("EasyAntiCheat.sys");
-	Log("base: %p", (void*)test2);
+
+	ULONG64 v_tid[0x256] = { 0 };
+	ULONG thread_num = 0;
+	NTSTATUS status = GetDriverThreads("EasyAntiCheat.sys", &thread_num, v_tid);
+	if (!NT_SUCCESS(status))
+	{
+		Log("[-] Failed to get AC threads. Status code: %X.", status);
+	}
+	Log("%u threads found", thread_num);
 
 	// Return dummy status
 	return STATUS_SUCCESS;
