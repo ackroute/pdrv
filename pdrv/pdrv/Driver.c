@@ -32,6 +32,9 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 
 	PSYSTEM_SERVICE_DESCRIPTOR_TABLE test = GetSSDTBase();
 	Log("SSDT: %p", (void*)test);
+	
+	PVOID test2 = GetModuleBase("EasyAntiCheat.sys");
+	Log("base: %p", (void*)test2);
 
 	// Return dummy status
 	return STATUS_SUCCESS;

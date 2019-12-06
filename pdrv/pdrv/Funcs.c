@@ -1,5 +1,6 @@
 #include <ntifs.h>
 #include <ntstrsafe.h>
+#include "Log.h"
 #include "Structs.h"
 #include "Private.h"
 #include "Imports.h"
@@ -94,4 +95,60 @@ NTSTATUS ResumeThread(__in HANDLE ThreadHandle)
 	NtResumeThread = (NTSTATUS(__cdecl*)(HANDLE, PULONG))GetSSDTEntry(SSDT_RESUMETHREAD);
 	Status = NtResumeThread(ThreadHandle, NULL);
 	return Status;
+}
+
+/// <summary>
+/// Get base address of system module
+/// </summary>
+/// <param name="ModuleName">Name of module</param>
+/// <returns>Found address, 0 if not found</returns>
+PVOID GetModuleBase(IN char* ModuleName)
+{
+	NTSTATUS status = STATUS_SUCCESS;
+	ULONG bytes = 0;
+	PRTL_PROCESS_MODULES pMods = NULL;
+	PVOID checkPtr = NULL;
+	UNICODE_STRING routineName;
+
+	RtlUnicodeStringInit(&routineName, L"NtOpenFile");
+
+	checkPtr = MmGetSystemRoutineAddress(&routineName);
+	if (checkPtr == NULL)
+		return NULL;
+
+	// Protect from UserMode AV
+	status = ZwQuerySystemInformation(SystemModuleInformation, 0, bytes, &bytes);
+	if (bytes == 0)
+	{
+		//DPRINT("BlackBone: %s: Invalid SystemModuleInformation size\n", __FUNCTION__);
+		Log("[-] Invalid SystemModuleInformation size");
+		return NULL;
+	}
+
+	pMods = (PRTL_PROCESS_MODULES)ExAllocatePoolWithTag(NonPagedPool, bytes, POOL_TAG);
+	RtlZeroMemory(pMods, bytes);
+
+	status = ZwQuerySystemInformation(SystemModuleInformation, pMods, bytes, &bytes);
+
+	if (NT_SUCCESS(status))
+	{
+		PRTL_PROCESS_MODULE_INFORMATION pMod = pMods->Modules;
+
+		for (ULONG i = 0; i < pMods->NumberOfModules; i++)
+		{
+			// System routine is inside module
+			if (checkPtr >= pMod[i].ImageBase &&
+				checkPtr < (PVOID)((PUCHAR)pMod[i].ImageBase + pMod[i].ImageSize))
+			{
+				char* pDrvName = (char*)(pMods->Modules[i].FullPathName) + pMods->Modules[i].OffsetToFileName;
+				if (_stricmp(pDrvName, ModuleName) == 0)
+					return (PVOID)(pMods->Modules[i].ImageBase);
+			}
+		}
+	}
+
+	if (pMods)
+		ExFreePoolWithTag(pMods, POOL_TAG);
+
+	return 0;
 }

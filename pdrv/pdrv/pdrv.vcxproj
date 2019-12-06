@@ -151,6 +151,7 @@
     <ClCompile Include="Utils.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Funcs.h" />
     <ClInclude Include="Imports.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="Private.h" />

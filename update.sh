@@ -10,4 +10,4 @@ git add *.config
 
 git commit -m "$(date)"
 
-#git push
+git push
