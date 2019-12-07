@@ -48,24 +48,6 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 		return STATUS_CANCELLED;
 	}
 
-	// This is not a recommended way to get PID of process
-	Log("[>] Getting PID of the game...");
-	int PID = 0;
-	for (int i = 0; i < 99999; i++)
-	{
-		char* processname = GetName((HANDLE)i);
-		if (IsPartOf(processname, PROC_NAME))
-		{
-			Log("[+] Game PID is %i", PID);
-			break;
-		}
-	}
-	if (PID == 0)
-	{
-		Log("[-] Can't find PID");
-		return STATUS_CANCELLED;
-	}
-
 	if (*Code == CODE_DISABLE) 
 	{
 		// Get anticheat threads to manupulate them
@@ -92,7 +74,22 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 		Log("[+] Callbacks disabled");
 	}
 
+	if (*Code == CODE_RESTORE) 
+	{
+		// Resume threads
+		Log("[>] Resuming threads...");
+		for (ULONG i = 0; i < ThreadNumber; i++)
+		{
+			Threads[i] = OpenThread(THREAD_ALL_ACCESS, FALSE, (DWORD)ArrTID[i]);
+			ResumeThread(Threads[i]);
+			Log("[+] Thread with HANDLE %p resumed", Threads[i]);
+		}
 
+		// Restore old callbacks
+		Log("[>] Restoring anticheat callbacks...");
+		Restore(&OldCallbacks);
+		Log("[+] Callbacks restored");
+	}
 
 	return STATUS_SUCCESS;
 }
