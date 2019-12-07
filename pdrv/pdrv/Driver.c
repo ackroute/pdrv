@@ -76,6 +76,8 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 
 	if (*Code == CODE_RESTORE) 
 	{
+		// TODO: Check if CODE_DISABLE was called first
+		
 		// Resume threads
 		Log("[>] Resuming threads...");
 		for (ULONG i = 0; i < ThreadNumber; i++)
