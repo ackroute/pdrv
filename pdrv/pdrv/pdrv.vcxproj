@@ -157,6 +157,7 @@
     <ClInclude Include="Imports.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="Private.h" />
+    <ClInclude Include="Shared.h" />
     <ClInclude Include="Structs.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

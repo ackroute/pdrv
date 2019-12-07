@@ -17,10 +17,15 @@
 #include "Funcs.h"
 #include "Imports.h"
 #include "Callbacks.h"
+#include "Shared.h"
+#include "Utils.h"
 
 #pragma warning( disable : 4152 )
 
-static ULONG32 testcode = 0;
+static ULONG64 ArrTID[0x256] = { 0 };
+static ULONG ThreadNumber = 0;
+static OLD_CALLBACKS OldCallbacks = { 0 };
+static HANDLE Threads[0x256] = { 0 };
 
 /// <summary>
 /// Function executed when our hooked func is called
@@ -35,9 +40,53 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 	UNREFERENCED_PARAMETER(DontUse2);
 
 	Log("[+] Hook call with code %x", *Code);
+	
+	if (*Code != CODE_DISABLE || *Code != CODE_RESTORE)
+	{
+		Log("[-] Invalid code");
+		return STATUS_CANCELLED;
+	}
 
-	Log("[+] Old code: %x", testcode);
-	testcode = *Code;
+	// This is not a recommended way to get PID of process
+	Log("[>] Getting PID of the game...");
+	int PID = 0;
+	for (int i = 0; i < 99999; i++)
+	{
+		char* processname = GetName((HANDLE)i);
+		if (IsPartOf(processname, PROC_NAME))
+		{
+			Log("[+] Game PID is %i", PID);
+			break;
+		}
+	}
+	if (PID == 0)
+	{
+		Log("[-] Can't find PID");
+		return STATUS_CANCELLED;
+	}
+
+	if (*Code == CODE_DISABLE) 
+	{
+		// Get anticheat threads to manupulate them
+		Log("[>] Gettting anticheat threads...");
+		NTSTATUS status = GetDriverThreads("EasyAntiCheat.sys", &ThreadNumber, ArrTID);
+		if (!NT_SUCCESS(status) || ThreadNumber == 0)
+		{
+			Log("[-] Failed to get anticheat threads");
+		}
+		Log("[+] Found %u threads", ThreadNumber);
+
+		// Suspend threads
+		Log("[>] Suspending threads...");
+		for (ULONG i = 0; i < ThreadNumber; i++)
+		{
+			Threads[i] = OpenThread(THREAD_ALL_ACCESS, FALSE, (DWORD)ArrTID[i]);
+			SuspendThread(Threads[i]);
+			Log("[+] Thread with HANDLE %p suspended", Threads[i]);
+		}
+
+		// Unregister callbacks
+	}
 
 	return STATUS_SUCCESS;
 }

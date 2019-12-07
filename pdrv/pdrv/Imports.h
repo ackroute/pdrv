@@ -31,3 +31,7 @@ RtlFindExportedRoutineByName(
 	_In_ PVOID ImageBase,
 	_In_ PCCH RoutineNam
 );
+
+CHAR* PsGetProcessImageFileName(
+	_In_ PEPROCESS Process
+);

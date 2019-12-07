@@ -1,4 +1,6 @@
 #include <ntifs.h>
+#include "Structs.h"
+#include "Imports.h"
 
 /// <summary>
 /// Search for pattern
@@ -36,4 +38,48 @@ NTSTATUS SearchPattern(IN PCUCHAR pattern, IN UCHAR wildcard, IN ULONG_PTR len, 
 	}
 
 	return STATUS_NOT_FOUND;
+}
+
+/// <summary>
+/// Gets name of process main module
+/// </summary>
+/// <param name="pid">PID of process</param>
+/// <returns>Pointer to name</returns>
+char* GetName(IN HANDLE pid)
+{
+	PEPROCESS Process;
+	if (PsLookupProcessByProcessId(pid, &Process) == STATUS_INVALID_PARAMETER)
+	{
+		return "invalid";
+	}
+	return (CHAR*)PsGetProcessImageFileName(Process);
+}
+
+/// <summary>
+/// Unsecure! Compares two char pointer and if one is part of another it returns true
+/// </summary>
+/// <param name="w1">First char pointer</param>
+/// <param name="w2">Second char pointer</param>
+/// <returns>Boolean</returns>
+BOOLEAN IsPartOf(IN char* w1, IN char* w2)
+{
+	int i = 0;
+	int j = 0;
+
+	while (w1[i] != '\0') {
+		if (w1[i] == w2[j])
+		{
+			while (w1[i] == w2[j] && w2[j] != '\0')
+			{
+				j++;
+				i++;
+			}
+			if (w2[j] == '\0') {
+				return TRUE;
+			}
+			j = 0;
+		}
+		i++;
+	}
+	return FALSE;
 }
