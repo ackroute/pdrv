@@ -16,8 +16,11 @@
 #include "Private.h"
 #include "Funcs.h"
 #include "Imports.h"
+#include "Callbacks.h"
 
 #pragma warning( disable : 4152 )
+
+static ULONG32 testcode = 0;
 
 /// <summary>
 /// Function executed when our hooked func is called
@@ -32,6 +35,9 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 	UNREFERENCED_PARAMETER(DontUse2);
 
 	Log("[+] Hook call with code %x", *Code);
+
+	Log("[+] Old code: %x", testcode);
+	testcode = *Code;
 
 	return STATUS_SUCCESS;
 }

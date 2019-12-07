@@ -145,12 +145,14 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Callbacks.c" />
     <ClCompile Include="Driver.c" />
     <ClCompile Include="Funcs.c" />
     <ClCompile Include="Private.c" />
     <ClCompile Include="Utils.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Callbacks.h" />
     <ClInclude Include="Funcs.h" />
     <ClInclude Include="Imports.h" />
     <ClInclude Include="Log.h" />
