@@ -15,12 +15,32 @@
 #include "Structs.h"
 #include "Private.h"
 #include "Funcs.h"
+#include "Imports.h"
+
+#pragma warning( disable : 4152 )
+
+/// <summary>
+/// Function executed when our hooked func is called
+/// </summary>
+/// <param name="dont_use1">Dummy arg</param>
+/// <param name="dont_use2">Dummy arg</param>
+/// <param name="param3">Argument used to indentify request</param>
+/// <returns>Status</returns>
+NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
+{
+	UNREFERENCED_PARAMETER(DontUse1);
+	UNREFERENCED_PARAMETER(DontUse2);
+
+	Log("[+] Hook call with code %x", *Code);
+
+	return STATUS_SUCCESS;
+}
 
 /// <summary>
 /// Driver main entry point
 /// </summary>
 /// <param name="DriverObject">DriverObject pointer</param>
-/// <returns>RegistryPath pointer</returns>
+/// <returns>Status</returns>
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath) 
 {
 	// Both are undefined when we manual map the driver
@@ -28,19 +48,20 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	UNREFERENCED_PARAMETER(RegistryPath);
 	
 	// Print some copyright because that's what matters the most
-	Log("\n\npdrv\nCopyright (c) 2019 Samuel Tulach - All rights reserved\n\n");
+	Log("\n\npdrv\nCopyright (c) 2019 xcheats.cc - All rights reserved\n\n");
 
-	PSYSTEM_SERVICE_DESCRIPTOR_TABLE test = GetSSDTBase();
-	Log("SSDT: %p", (void*)test);
+	// Hook NtQueryIntervalProfile
+	Log("[>] Hooking functions...");
+	
+	PVOID ntosbase = GetKernelBase(NULL);
+	Log("[+] Kernel base: %p", ntosbase);
 
-	ULONG64 v_tid[0x256] = { 0 };
-	ULONG thread_num = 0;
-	NTSTATUS status = GetDriverThreads("EasyAntiCheat.sys", &thread_num, v_tid);
-	if (!NT_SUCCESS(status))
-	{
-		Log("[-] Failed to get AC threads. Status code: %X.", status);
-	}
-	Log("%u threads found", thread_num);
+	PVOID* dsptbl = (PVOID*)(RtlFindExportedRoutineByName(ntosbase, "HalDispatchTable"));
+	Log("[+] HalDispatchTable: %p", dsptbl);
+
+	dsptbl[1] = &HookHandler;
+
+	Log("[+] Functions hoooked");
 
 	// Return dummy status
 	return STATUS_SUCCESS;

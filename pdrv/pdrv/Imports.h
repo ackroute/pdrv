@@ -23,3 +23,11 @@ ZwOpenThread(
 	_In_ POBJECT_ATTRIBUTES ObjectAttributes,
 	_In_opt_ PCLIENT_ID ClientId
 );
+
+NTKERNELAPI
+PVOID
+NTAPI
+RtlFindExportedRoutineByName(
+	_In_ PVOID ImageBase,
+	_In_ PCCH RoutineNam
+);
