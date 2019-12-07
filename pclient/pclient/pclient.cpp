@@ -16,6 +16,10 @@
  Web:			https://github.com/hrt/ThreadJect-x64
  License:		MIT
  Copyright:		(c) 2017 Bill Demirkapi
+
+ When building make sure you have all the required settings
+ to disable any kind of optimalization and that you are linking
+ against ntdll.lib and not some shit VC libs.
 */
 
 // TODO: Use blank space instead of allocating memory
@@ -27,7 +31,7 @@
 #include "XorCompileTime.hpp"
 #include <string>
 
-#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Downloads\\D3D11-Wallhack-master\\x64\\Debug\\d3d11hook.dll"
+#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\injecttest\\Dll1\\x64\\Release\\Dll1.dll"
 #define TARGET_PROCESS L"r5apex.exe"
 #define TARGET_THREAD 2
 
@@ -220,9 +224,12 @@ DWORD GetPID()
 
 void End() 
 {
-	printf(xorstr_("\nPress any key to exit...\n"));
+	printf(xorstr_("\nPlease exit the program\n"));
 	getchar();
-	exit(0);
+	while (true) 
+	{
+		Sleep(1000);
+	}
 }
 
 int main()
@@ -255,6 +262,7 @@ int main()
 	printf(xorstr_("[>] Disabling anticheat callbacks...\n"));
 	CallbackSwitch(false);
 	printf(xorstr_("[+] Callbacks disabled\n"));
+	Sleep(100);
 	
 	printf(xorstr_("[>] Getting game PID...\n"));
 	DWORD PID = GetPID();
@@ -511,6 +519,7 @@ int main()
 
 	printf(xorstr_("[+] Injected successfully\n"));
 
+	Sleep(100);
 	printf(xorstr_("[>] Restoring anticheat callbacks...\n"));
 	CallbackSwitch(true);
 	printf(xorstr_("[+] Callbacks restored\n"));
