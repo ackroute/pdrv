@@ -31,9 +31,9 @@ static HANDLE Threads[0x256] = { 0 };
 /// <summary>
 /// Function executed when our hooked func is called
 /// </summary>
-/// <param name="dont_use1">Dummy arg</param>
-/// <param name="dont_use2">Dummy arg</param>
-/// <param name="param3">Argument used to indentify request</param>
+/// <param name="DontUse1">Dummy arg</param>
+/// <param name="DontUse2">Dummy arg</param>
+/// <param name="Code">Argument used to indentify request</param>
 /// <returns>Status</returns>
 NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 {
@@ -42,7 +42,7 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 
 	Log("[+] Hook call with code %x", *Code);
 	
-	if (*Code != CODE_DISABLE || *Code != CODE_RESTORE)
+	if (!(*Code == CODE_DISABLE || *Code == CODE_RESTORE))
 	{
 		Log("[-] Invalid code");
 		return STATUS_CANCELLED;
