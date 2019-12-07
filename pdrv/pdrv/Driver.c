@@ -7,6 +7,7 @@
 
  Copyright (c) 2019 Samuel Tulach - All rights reserved
 
+ Tested on Windows 10 x64 1909 18363.476
 */
 
 #include <ntifs.h>
@@ -117,9 +118,7 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	// Hook NtQueryIntervalProfile
 	Log("[>] Hooking functions...");
 	
-	ULONG32 test = CODE_DISABLE;
-	HookHandler(0, 0, &test);
-	/*PVOID ntosbase = GetKernelBase(NULL);
+	PVOID ntosbase = GetKernelBase(NULL);
 	if (!ntosbase) 
 	{
 		Log("[-] Failed to get kernel base");
@@ -138,7 +137,7 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	dsptbl[1] = &HookHandler;
 
 	Log("[+] Functions hoooked");
-	*/
+	
 	// Return dummy status
 	return STATUS_SUCCESS;
 }
