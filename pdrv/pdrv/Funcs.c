@@ -7,7 +7,7 @@
 #include "Utils.h"
 #include "Funcs.h"
 
-#define SSDT_NTSUSPENDTHRED		436
+#define SSDT_NTSUSPENDTHRED		438
 #define SSDT_RESUMETHREAD		82
 #define SSDT_TERMINATETHREAD	83
 
@@ -68,7 +68,7 @@ HANDLE OpenThread(DWORD dwDesiredAccess, BOOLEAN bInheritHandle, DWORD dwThreadI
 NTSTATUS SuspendThread(__in HANDLE ThreadHandle)
 {
 	NTSTATUS Status;
-	fnNtSuspendThread suspth = (fnNtSuspendThread)(ULONG_PTR)GetSSDTEntry(SSDT_NTSUSPENDTHRED);
+	fnNtSuspendThread suspth = (fnNtSuspendThread)(ULONG_PTR)GetSSDTEntry(SSDT_NTSUSPENDTHRED); // Warning! Latest Windows has changed this!
 	Status = suspth(ThreadHandle, 0);
 	return Status;
 }
