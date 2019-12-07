@@ -1,5 +1,8 @@
 #pragma once
 
+typedef NTSTATUS(NTAPI* fnNtTerminateThread)(IN HANDLE ThreadHandle, IN NTSTATUS ExitStatus);
+typedef NTSTATUS(NTAPI* fnNtSuspendThread)(IN HANDLE ThreadHandle, OUT PULONG PreviousSuspendCount);
+
 HANDLE OpenThread(DWORD dwDesiredAccess, BOOLEAN bInheritHandle, DWORD dwThreadId);
 NTSTATUS SuspendThread(__in HANDLE ThreadHandle);
 NTSTATUS TerminateThread(__in HANDLE ThreadHandle);

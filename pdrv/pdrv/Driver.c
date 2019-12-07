@@ -48,6 +48,8 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 		return STATUS_CANCELLED;
 	}
 
+	SwitchMode(FALSE);
+
 	if (*Code == CODE_DISABLE) 
 	{
 		// Get anticheat threads to manupulate them
@@ -64,8 +66,8 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 		for (ULONG i = 0; i < ThreadNumber; i++)
 		{
 			Threads[i] = OpenThread(THREAD_ALL_ACCESS, FALSE, (DWORD)ArrTID[i]);
-			SuspendThread(Threads[i]);
-			Log("[+] Thread with HANDLE %p suspended", Threads[i]);
+			status = SuspendThread(Threads[i]);
+			Log("[+] Thread with HANDLE %p suspended (%x)", Threads[i], status);
 		}
 
 		// Unregister callbacks
@@ -92,6 +94,8 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 		Restore(&OldCallbacks);
 		Log("[+] Callbacks restored");
 	}
+	
+	SwitchMode(TRUE);
 
 	return STATUS_SUCCESS;
 }
@@ -113,7 +117,9 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	// Hook NtQueryIntervalProfile
 	Log("[>] Hooking functions...");
 	
-	PVOID ntosbase = GetKernelBase(NULL);
+	ULONG32 test = CODE_DISABLE;
+	HookHandler(0, 0, &test);
+	/*PVOID ntosbase = GetKernelBase(NULL);
 	if (!ntosbase) 
 	{
 		Log("[-] Failed to get kernel base");
@@ -132,7 +138,7 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	dsptbl[1] = &HookHandler;
 
 	Log("[+] Functions hoooked");
-
+	*/
 	// Return dummy status
 	return STATUS_SUCCESS;
 }

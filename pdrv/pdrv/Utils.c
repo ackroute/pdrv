@@ -1,6 +1,7 @@
 #include <ntifs.h>
 #include "Structs.h"
 #include "Imports.h"
+#include "Log.h"
 
 /// <summary>
 /// Search for pattern
@@ -82,4 +83,25 @@ BOOLEAN IsPartOf(IN char* w1, IN char* w2)
 		i++;
 	}
 	return FALSE;
+}
+
+/// <summary>
+/// Switch current thread mode
+/// </summary>
+/// <param name="Mode">Usermode if true</param>
+/// <returns>Boolean</returns>
+void SwitchMode(IN BOOLEAN Mode) 
+{
+	Log("[>] Switching mode...");
+	PUCHAR pprevmode = (PUCHAR)PsGetCurrentThread() + 0x232; // PrevMode from blackbone
+	UCHAR prevmode = *pprevmode;
+	if (Mode) 
+	{
+		*pprevmode = UserMode;
+	}
+	else 
+	{
+		*pprevmode = KernelMode;
+	}
+	Log("[+] Switched mode (from %u, to %u)", prevmode, *pprevmode);
 }

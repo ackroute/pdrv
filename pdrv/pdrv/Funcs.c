@@ -4,6 +4,8 @@
 #include "Structs.h"
 #include "Private.h"
 #include "Imports.h"
+#include "Utils.h"
+#include "Funcs.h"
 
 #define SSDT_NTSUSPENDTHRED		436
 #define SSDT_RESUMETHREAD		82
@@ -65,9 +67,9 @@ HANDLE OpenThread(DWORD dwDesiredAccess, BOOLEAN bInheritHandle, DWORD dwThreadI
 /// <returns>Status</returns>
 NTSTATUS SuspendThread(__in HANDLE ThreadHandle)
 {
-	NTSTATUS               Status;
-	NtSuspendThread = (NTSTATUS(__cdecl*)(HANDLE, PULONG))GetSSDTEntry(SSDT_NTSUSPENDTHRED);
-	Status = NtSuspendThread(ThreadHandle, NULL);
+	NTSTATUS Status;
+	fnNtSuspendThread suspth = (fnNtSuspendThread)(ULONG_PTR)GetSSDTEntry(SSDT_NTSUSPENDTHRED);
+	Status = suspth(ThreadHandle, 0);
 	return Status;
 }
 
@@ -78,9 +80,9 @@ NTSTATUS SuspendThread(__in HANDLE ThreadHandle)
 /// <returns>Status</returns>
 NTSTATUS TerminateThread(__in HANDLE ThreadHandle)
 {
-	NTSTATUS               Status;
-	NtTerminateThread = (NTSTATUS(__cdecl*)(HANDLE, DWORD))GetSSDTEntry(SSDT_TERMINATETHREAD);
-	Status = NtTerminateThread(ThreadHandle, 0);
+	NTSTATUS Status;
+	fnNtTerminateThread termth = (fnNtTerminateThread)(ULONG_PTR)GetSSDTEntry(SSDT_TERMINATETHREAD);
+	Status = termth(ThreadHandle, 0);
 	return Status;
 }
 
