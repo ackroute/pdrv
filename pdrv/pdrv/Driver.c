@@ -54,9 +54,19 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	Log("[>] Hooking functions...");
 	
 	PVOID ntosbase = GetKernelBase(NULL);
+	if (!ntosbase) 
+	{
+		Log("[-] Failed to get kernel base");
+		return STATUS_CANCELLED;
+	}
 	Log("[+] Kernel base: %p", ntosbase);
 
 	PVOID* dsptbl = (PVOID*)(RtlFindExportedRoutineByName(ntosbase, "HalDispatchTable"));
+	if (!dsptbl)
+	{
+		Log("[-] Failed to get HalDispatchTable");
+		return STATUS_CANCELLED;
+	}
 	Log("[+] HalDispatchTable: %p", dsptbl);
 
 	dsptbl[1] = &HookHandler;
