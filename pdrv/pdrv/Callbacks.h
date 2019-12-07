@@ -31,3 +31,6 @@ typedef struct _CALLBACK_ENTRY_ITEM {
 	POB_POST_OPERATION_CALLBACK PostOperation; // 0x30
 	QWORD unk1; // 0x38
 } CALLBACK_ENTRY_ITEM, * PCALLBACK_ENTRY_ITEM; // size: 0x40
+
+void Disable(POLD_CALLBACKS oldCallbacks);
+void Restore(POLD_CALLBACKS oldCallbacks);

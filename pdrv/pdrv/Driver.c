@@ -17,8 +17,9 @@
 #include "Funcs.h"
 #include "Imports.h"
 #include "Callbacks.h"
-#include "Shared.h"
 #include "Utils.h"
+#include "Callbacks.h"
+#include "Shared.h"
 
 #pragma warning( disable : 4152 )
 
@@ -86,7 +87,12 @@ NTSTATUS HookHandler(UINT_PTR DontUse1, UINT_PTR DontUse2, PULONG32 Code)
 		}
 
 		// Unregister callbacks
+		Log("[>] Disabling anticheat callbacks...");
+		Disable(&OldCallbacks);
+		Log("[+] Callbacks disabled");
 	}
+
+
 
 	return STATUS_SUCCESS;
 }
