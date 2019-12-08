@@ -31,9 +31,9 @@
 #include "XorCompileTime.hpp"
 #include <string>
 
-#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\injecttest\\Dll1\\x64\\Release\\Dll1.dll"
+#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\pdrv\\xepa\\build\\xepa.dll"
 #define TARGET_PROCESS L"r5apex.exe"
-#define TARGET_THREAD 2
+#define TARGET_THREAD 3
 
 #define CODE_DISABLE 0x1601
 #define CODE_RESTORE 0x1602
@@ -519,7 +519,10 @@ int main()
 
 	printf(xorstr_("[+] Injected successfully\n"));
 
-	Sleep(100);
+	printf(xorstr_("[>] Waiting...\n"));
+	Sleep(3000);
+	printf(xorstr_("[+] Wait complete\n"));
+
 	printf(xorstr_("[>] Restoring anticheat callbacks...\n"));
 	CallbackSwitch(true);
 	printf(xorstr_("[+] Callbacks restored\n"));
