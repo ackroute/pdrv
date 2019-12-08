@@ -2,7 +2,7 @@
 #include <iostream>
 #include <d3d11.h>
 #include "xor.h"
-#include "Hook.h"
+#include "Overlay.h"
 
 void Init() 
 {
@@ -14,9 +14,8 @@ void Init()
 	printf(xorstr_("\n\txepa\n"));
 	printf(xorstr_("\tCopyright (c) xcheats.cc - All rights reserved\n\n"));
 
-	printf(xorstr_("[>] Hooking...\n"));
-	Hook::RunHooks(); 
-	printf(xorstr_("[+] Hooking complete\n"));
+	printf(xorstr_("[>] Creating overlay...\n"));
+	RunOverlay();
 
 	while (true) 
 	{
