@@ -5,6 +5,7 @@
 #include <Dwmapi.h> 
 #include <TlHelp32.h>
 #include "xor.h"
+#include "Loop.h"
 
 #define GAME_WINDOW "Apex Legends"
 
@@ -47,7 +48,7 @@ void initD3D(HWND hWnd)
 		&d3dpp,
 		&d3ddev);
 
-	D3DXCreateFont(d3ddev, 50, 0, FW_BOLD, 1, 0, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Arial", &pFont);
+	D3DXCreateFont(d3ddev, 17, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial"), &pFont);
 }
 
 void DrawString(int x, int y, DWORD color, LPD3DXFONT g_pFont, const char* fmt, ...)
@@ -68,7 +69,8 @@ void render()
 
 	d3ddev->BeginScene();
 
-	DrawString(10, 50, D3DCOLOR_ARGB(255, 255, 0, 0), pFont, "Test rendering");
+	DrawString(10, 10, D3DCOLOR_ARGB(255, 255, 0, 0), pFont, "xcheats.cc");
+	EntityLoop(&pFont);
 
 	d3ddev->EndScene();
 	d3ddev->Present(NULL, NULL, NULL, NULL);

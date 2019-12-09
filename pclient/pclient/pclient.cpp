@@ -31,8 +31,8 @@
 #include "XorCompileTime.hpp"
 #include <string>
 
-#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\pdrv\\xepa\\build\\xepa.dll"
-#define TARGET_PROCESS L"r5apex.exe"
+#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Downloads\\rust_internal_sdk-master\\x64\\Release\\tsur.dll"
+#define TARGET_PROCESS L"RustClient.exe"
 #define TARGET_THREAD 3
 
 #define CODE_DISABLE 0x1601
