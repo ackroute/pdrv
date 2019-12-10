@@ -31,7 +31,7 @@
 #include "XorCompileTime.hpp"
 #include <string>
 
-#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Downloads\\rust_internal_sdk-master\\x64\\Release\\tsur.dll"
+#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\pdrv\\tsar\\x64\\Release\\tsur.dll"
 #define TARGET_PROCESS L"RustClient.exe"
 #define TARGET_THREAD 3
 
@@ -519,9 +519,13 @@ int main()
 
 	printf(xorstr_("[+] Injected successfully\n"));
 
-	printf(xorstr_("[>] Waiting...\n"));
-	Sleep(3000);
-	printf(xorstr_("[+] Wait complete\n"));
+	/*printf(xorstr_("[>] Waiting... "));
+	for (int i = 1; i <= 10; i++) 
+	{
+		printf(xorstr_(" %i "), i);
+		Sleep(1000);
+	}
+	printf(xorstr_("\n[+] Wait complete\n"));*/
 
 	printf(xorstr_("[>] Restoring anticheat callbacks...\n"));
 	CallbackSwitch(true);

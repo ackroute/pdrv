@@ -173,6 +173,7 @@
     <ClInclude Include="classes.hpp" />
     <ClInclude Include="draw.h" />
     <ClInclude Include="globals.h" />
+    <ClInclude Include="module.h" />
     <ClInclude Include="utils.hpp" />
     <ClInclude Include="vector.hpp" />
     <ClInclude Include="xor.h" />

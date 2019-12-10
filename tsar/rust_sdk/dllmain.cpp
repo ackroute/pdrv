@@ -22,6 +22,7 @@
 #include "utils.hpp"
 #include "xor.h"
 #include "globals.h"
+#include "module.h"
 
 int width = 1920;
 int height = 1080;
@@ -157,7 +158,9 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 }
 
 void __stdcall RunOverlay()
-{
+{	
+	printf(xorstr_("[+] Overlay thread started\n"));
+
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 	RECT rc;
 	HWND newhwnd = FindWindow(GAME_WINDOW_CLASS, GAME_WINDOW);
@@ -311,15 +314,133 @@ void __stdcall camera_loop_thread( void* game_object_manager )
 	}
 }
 
-void __stdcall main_thread()
+DWORD GetMainThread(DWORD dwProcID)
 {
-	AllocConsole( );
-	freopen_s( reinterpret_cast< FILE** >( stdin ), "CONIN$", "r", stdin );
-	freopen_s( reinterpret_cast< FILE** >( stdout ), "CONOUT$", "w", stdout );
+	DWORD dwMainThreadID = 0;
+	ULONGLONG ullMinCreateTime = MAXULONGLONG;
 
-	printf(xorstr_("\n\ttsur\n"));
-	printf(xorstr_("\tCopyright (c) xcheats.cc - All rights reserved\n\n"));
+	HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+	if (hThreadSnap != INVALID_HANDLE_VALUE) {
+		THREADENTRY32 th32;
+		th32.dwSize = sizeof(THREADENTRY32);
+		BOOL bOK = TRUE;
+		for (bOK = Thread32First(hThreadSnap, &th32); bOK;
+			bOK = Thread32Next(hThreadSnap, &th32)) {
+			if (th32.th32OwnerProcessID == dwProcID) {
+				HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION,
+					TRUE, th32.th32ThreadID);
+				if (hThread) {
+					FILETIME afTimes[4] = { 0 };
+					if (GetThreadTimes(hThread,
+						&afTimes[0], &afTimes[1], &afTimes[2], &afTimes[3])) {
+						ULONGLONG ullTest = (ULONGLONG)(afTimes[0].dwLowDateTime,
+							afTimes[0].dwHighDateTime);
+						if (ullTest && ullTest < ullMinCreateTime) {
+							ullMinCreateTime = ullTest;
+							dwMainThreadID = th32.th32ThreadID;
+						}
+					}
+					CloseHandle(hThread);
+				}
+			}
+		}
+		CloseHandle(hThreadSnap);
+	}
+	return dwMainThreadID;
+}
 
+std::vector<DWORD> threadlist;
+int number = 0;
+void HijackThread(DWORD64 func, int id) 
+{
+	printf(xorstr_("[>] Hijacking thread for func %p...\n"), func);
+
+	THREADENTRY32 te32;
+	THREADENTRY32 tte32;
+	te32.dwSize = sizeof(THREADENTRY32);
+	CONTEXT ctx;
+	ctx.ContextFlags = CONTEXT_FULL;
+
+	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+	Thread32First(hSnap, &te32);
+
+	printf(xorstr_("[+] TH32 handle %p\n"), hSnap);
+	DWORD mainthread = GetMainThread(GetCurrentProcessId());
+	printf(xorstr_("[+] Main thread id %d\n"), mainthread);
+
+	if (threadlist.empty()) 
+	{
+		while (Thread32Next(hSnap, &te32))
+		{
+			if (GetCurrentThreadId() == te32.th32ThreadID)
+			{
+				printf(xorstr_("[-] Thread is current thread\n"));
+				continue;
+			}
+			// Check if the thread was not already hijacked
+			if (std::find(threadlist.begin(), threadlist.end(), te32.th32ThreadID) != threadlist.end())
+			{
+				printf(xorstr_("[-] Thread already hijacked\n"));
+				continue;
+			}
+			if (GetCurrentThreadId() == mainthread)
+			{
+				printf(xorstr_("[-] Skipped main thread\n"));
+				continue;
+			}
+			if (GetCurrentProcessId() == te32.th32OwnerProcessID)
+			{
+				/*if (number == 0)
+				{
+					// We don't want main thread
+					number++;
+					printf(xorstr_("[-] Skipped main thread\n"));
+					continue;
+				}*/
+				threadlist.push_back(te32.th32ThreadID);
+				//printf(xorstr_("[+] Found thread with id %d\n"), te32.th32ThreadID);
+			}
+		}
+		printf(xorstr_("[+] Found %i threads\n"), threadlist.size());
+	}
+	CloseHandle(hSnap);
+
+	int threadpos = id;
+	DWORD threadid = 0;;
+	while (threadid == 0) 
+	{
+		threadid = threadlist[threadlist.size() - threadpos];
+		threadpos++;
+	}
+	printf(xorstr_("[+] Using thread with id %d\n"), threadid);
+
+	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, threadid);
+
+	if (!hThread)
+	{
+		printf(xorstr_("[-] Unable to open target thread handle (%d)\n"), GetLastError());
+	}
+
+	SuspendThread(hThread);
+	GetThreadContext(hThread, &ctx);
+
+	ctx.Rip = (DWORD64)func;
+
+	if (!SetThreadContext(hThread, &ctx))
+	{
+		printf(xorstr_("[-] Unable to set thread context (%d)\n"), GetLastError());
+	}
+
+	ResumeThread(hThread);
+	CloseHandle(hThread);
+
+	printf(xorstr_("[+] Context set\n"));
+}
+
+void __stdcall main_thread()
+{	
+	printf(xorstr_("[+] Main thread started\n"));
+	
 	const auto base_networkable_address = utils::memory::find_signature("GameAssembly.dll", "48 8b 05 ? ? ? ? 48 8b 88 ? ? ? ? 48 8b 09 48 85 c9 74 ? 45 33 c0 8b" );
 
 	if ( !base_networkable_address )
@@ -377,16 +498,32 @@ void __stdcall main_thread()
 	PostMessage( GetConsoleWindow( ), WM_CLOSE, 0, 0 );
 }
 
+void __stdcall Init() 
+{
+	AllocConsole();
+	freopen_s(reinterpret_cast<FILE**>(stdin), "CONIN$", "r", stdin);
+	freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
+
+	printf(xorstr_("\n\ttsur\n"));
+	printf(xorstr_("\tCopyright (c) xcheats.cc - All rights reserved\n\n"));
+
+	printf(xorstr_("[>] Hijacking threads...\n"));
+	HijackThread((DWORD64)main_thread, 5);
+	HijackThread((DWORD64)RunOverlay, 6);
+}
+
 bool __stdcall DllMain( HMODULE module, std::uint32_t call_reason, void* )
 {
 	if ( call_reason != DLL_PROCESS_ATTACH )
 		return false;
 
-	if ( const auto handle = CreateThread( nullptr, 0, reinterpret_cast< LPTHREAD_START_ROUTINE >( main_thread ), module, 0, nullptr ); handle != NULL )
-		CloseHandle( handle );
+	//if ( const auto handle = CreateThread( nullptr, 0, reinterpret_cast< LPTHREAD_START_ROUTINE >( main_thread ), module, 0, nullptr ); handle != NULL )
+	//	CloseHandle( handle );
 
-	if (const auto handle = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(RunOverlay), module, 0, nullptr); handle != NULL)
-		CloseHandle(handle);
+	Init();
+
+	//if (const auto handle = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(RunOverlay), module, 0, nullptr); handle != NULL)
+	//	CloseHandle(handle);
 	
 	return true;
 }
