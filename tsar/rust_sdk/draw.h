@@ -93,6 +93,18 @@ void DrawBox(float x, float y, float width, float height, float px, int r, int g
 	pLine->Draw(points, 5, D3DCOLOR_RGBA(r, g, b, a));
 }
 
+void DrawBoxP(float x, float y, float x2, float y2, float px, int r, int g, int b, int a)
+{
+	D3DXVECTOR2 points[5];
+	points[0] = D3DXVECTOR2(x, y);
+	points[1] = D3DXVECTOR2(x2, y);
+	points[2] = D3DXVECTOR2(x2, y2);
+	points[3] = D3DXVECTOR2(x, y2);
+	points[4] = D3DXVECTOR2(x, y);
+	pLine->SetWidth(1);
+	pLine->Draw(points, 5, D3DCOLOR_RGBA(r, g, b, a));
+}
+
 void DrawGUIBox(float x, float y, float w, float h, int r, int g, int b, int a, int rr, int gg, int bb, int aa)
 {
 	DrawBox(x, y, w, h, 1, r, g, b, a);

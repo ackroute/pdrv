@@ -111,8 +111,15 @@ void render()
 		if (entity_head.empty())
 			continue;
 
+		auto entity_neck = utils::mono::transform::get_position(entity->model->transforms->neck);
+		entity_neck.y -= 5;
+
+		if (entity_neck.empty())
+			continue;
+
 		geo::vec2_t screenh;
-		if (utils::render::world_to_screen(camera, entity_head, &screenh))
+		geo::vec2_t screenn;
+		if (utils::render::world_to_screen(camera, entity_head, &screenh) && utils::render::world_to_screen(camera, entity_neck, &screenn))
 		{
 			int health = (int)entity->health;
 			
@@ -120,6 +127,11 @@ void render()
 			
 			const auto matrix = camera.load(std::memory_order::memory_order_acquire)->view_matrix.transpose();
 			geo::vec3_t translation = { matrix[3][0], matrix[3][1], matrix[3][2] };
+			
+			DrawString(ToChar((int)matrix[3][0]), 50, (15 * 3), 255, 0, 0, pFont);
+			DrawString(ToChar((int)matrix[3][1]), 50, (15 * 4), 255, 0, 0, pFont);
+			DrawString(ToChar((int)matrix[3][2]), 50, (15 * 5), 255, 0, 0, pFont);
+			
 			float distance = entity_head.distance(translation);
 
 			if (distance < 0.05f)
@@ -130,7 +142,10 @@ void render()
 			DrawString(ToChar(health), screenh.x - 10, screenh.y + (15 * 2), 255, 0, 0, pFont);
 			DrawString(ToChar((int)distance), screenh.x - 10, screenh.y + (15 * 3), 255, 0, 0, pFont);
 
-			DrawBox(screenh.x - 10, screenh.y - 10, 20, 20, 1, 255, 0, 0, 255);
+			//DrawBox(screenh.x - 10, screenh.y - 10, 20, 20, 1, 255, 0, 0, 255);
+			float height = (abs(screenh.y - screenn.y)) / 4;
+			float width = height * 0.65;
+			DrawBox(screenh.x - (width / 2), screenh.y, width, height, 1, 255, 0, 0, 255);
 		}
 	}
 
