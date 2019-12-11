@@ -53,6 +53,22 @@ void FillRGB(float x, float y, float w, float h, int r, int g, int b, int a)
 	pLine->End();
 }
 
+void FillRGBC(float x, float y, float w, float h, D3DCOLOR color)
+{
+	D3DXVECTOR2 vLine[2];
+
+	pLine->SetWidth(w);
+
+	vLine[0].x = x + w / 2;
+	vLine[0].y = y;
+	vLine[1].x = x + w / 2;
+	vLine[1].y = y + h;
+
+	pLine->Begin();
+	pLine->Draw(vLine, 2, color);
+	pLine->End();
+}
+
 void GradientFunc(int x, int y, int w, int h, int r, int g, int b, int a)
 {
 	int iColorr, iColorg, iColorb;

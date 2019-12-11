@@ -10,6 +10,7 @@
 
 int font_height = 15;
 int menu_height = 5;
+int rpad = 100;
 
 std::vector<std::shared_ptr<ID3DMenuItem>> menu_items;
 
@@ -31,22 +32,35 @@ void draw_menu_item(std::shared_ptr<ID3DMenuItem> item, const float padding)
 			name = "[ + ] " + item->get_name();
 	}
 
-	std::string fstr = name + " " + item->get_value_text();
+	//std::string fstr = name + " " + item->get_value_text();
+	std::string value = item->get_value_text();
 
 	//overlay->draw_string({ 5 + padding, 3.f + static_cast<float>(menu_height += font_height) }, FONT_LEFT, color, "%s %s", name.c_str(), item->get_value_text().c_str());
 	//DrawString(fstr.c_str(), (int)(5 + padding), (int)(3.f + static_cast<float>(menu_height += font_height)), 255, 255, 255, pFont);
-	if (item->is_selected()) 
+	/*if (item->is_selected()) 
 	{
 		DrawString(fstr.c_str(), (int)(5 + padding), (int)(3.f + static_cast<float>(menu_height += font_height)), 255, 0, 0, pFont);
 	}
 	else 
 	{
-		DrawString(fstr.c_str(), (int)(5 + padding), (int)(3.f + static_cast<float>(menu_height += font_height)), 255, 255, 255, pFont);
+		DrawString(fstr.c_str(), (int)(5 + padding), (int)(3.f + static_cast<float>(menu_height += font_height)), 168, 168, 168, pFont);
+	}*/
+
+	int he = (int)(3.f + static_cast<float>(menu_height += font_height));
+	if (item->is_selected())
+	{
+		DrawString(name.c_str(), (int)(5 + padding), he, 255, 0, 0, pFont);
+		DrawString(value.c_str(), (int)(5 + padding) + rpad, he, 255, 0, 0, pFont);
+	}
+	else
+	{	
+		DrawString(name.c_str(), (int)(5 + padding), he, 168, 168, 168, pFont);
+		DrawString(value.c_str(), (int)(5 + padding) + rpad, he, 168, 168, 168, pFont);
 	}
 
 	if (item->is_subfolder() && std::static_pointer_cast<D3DMenuSubFolderItem>(item)->is_opened())
 	{
-		static auto length = strlen(xorstr_("[ - ] "));
+		static auto length = 22;
 
 		for (const auto& sub : std::static_pointer_cast<D3DMenuSubFolderItem>(item)->get_sub_items())
 		{
@@ -142,6 +156,8 @@ void handle_down()
 
 void init_menu() 
 {	
+	s_showmenu = false;
+	
 	auto esp = std::make_shared<D3DMenuSubFolderItem>(xorstr_("Wallhack"));
 	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Box"), s_box, true));
 	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Name"), s_name, true));
@@ -155,7 +171,14 @@ void init_menu()
 
 void render_menu(IDirect3DDevice9* device)
 {
-	DrawGUIBox(0, 0, 155, static_cast<int>(menu_height + font_height * 1.5f + 3), 41, 43, 54, 255, 25, 26, 32, 255);
+	if (GetAsyncKeyState(VK_INSERT) & 1)
+		s_showmenu = !s_showmenu;
+	
+	if (!s_showmenu)
+		return;
+	
+	//DrawGUIBox(0, 0, 150, static_cast<int>(menu_height + font_height * 1.5f + 3), 41, 43, 54, 255, 25, 26, 32, 255);
+	FillRGBC(0, 0, 175, static_cast<int>(menu_height + font_height * 1.5f + 3), D3DCOLOR_XRGB(0, 0, 0));
 	
 	menu_height = -static_cast<int>(font_height * 0.75f);
 

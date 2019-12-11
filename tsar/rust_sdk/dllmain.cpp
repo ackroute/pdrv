@@ -27,7 +27,7 @@
 #include "module.h"
 #include "settings.h"
 
-#define TEST_BUILD true
+#define TEST_BUILD false
 
 int width = 1920;
 int height = 1080;
@@ -60,6 +60,13 @@ ID3DXLine* pLine;
 
 #include "draw.h"
 #include "menu.h"
+#include <excpt.h>
+
+int filterException(int code, PEXCEPTION_POINTERS ex) {
+	//std::cout << "Filtering " << std::hex << code << std::endl;
+	printf("[!] Error with code %x occured", code);
+	return EXCEPTION_EXECUTE_HANDLER;
+}
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void initD3D(HWND hWnd)
@@ -101,14 +108,19 @@ char* ToChar(int num)
 
 void render_static() 
 {
-	//DrawString("xcheats.cc", 10, 10, 240, 0, 0, pFont);
+	if (!s_showmenu) 
+	{
+		DrawString("xcheats.cc", 10, 10, 240, 0, 0, pFont);
+	}
 }
 
 void render_esp() 
 {
-
 	for (const auto& entity : entities)
 	{
+		if (!entity)
+			continue;
+
 		if (entity == local_player || entity->player_model->is_local_player)
 			continue;
 
@@ -127,21 +139,9 @@ void render_esp()
 		geo::vec2_t screenn;
 		if (utils::render::world_to_screen(camera, entity_head, &screenh) && utils::render::world_to_screen(camera, entity_neck, &screenn))
 		{
+			// todo: distance
+
 			int health = (int)entity->health;
-
-			// distance not work
-
-			const auto matrix = camera.load(std::memory_order::memory_order_acquire)->view_matrix.transpose();
-			geo::vec3_t translation = { matrix[3][0], matrix[3][1], matrix[3][2] };
-
-			DrawString(ToChar((int)matrix[3][0]), 550, (15 * 3), 255, 0, 0, pFont);
-			DrawString(ToChar((int)matrix[3][1]), 550, (15 * 4), 255, 0, 0, pFont);
-			DrawString(ToChar((int)matrix[3][2]), 550, (15 * 5), 255, 0, 0, pFont);
-
-			float distance = entity_head.distance(translation);
-
-			if (distance < 0.05f)
-				continue;
 
 			std::string name = utils::mono::to_string(entity->display_name);
 
@@ -156,13 +156,17 @@ void render_esp()
 			}
 			if (s_distance)
 			{
-				finaltext += std::string(ToChar((int)distance)) + "\n";
+				finaltext += std::string(ToChar((int)abs(screenh.y - screenn.y))) + "\n";
 			}
 
 			//DrawBox(screenh.x - 10, screenh.y - 10, 20, 20, 1, 255, 0, 0, 255);
 			float height = abs(screenh.y - screenn.y);
 			float width = height * 0.65;
-			DrawBox(screenh.x - (width / 2), screenh.y, width, height, 1, 255, 0, 0, 255);
+
+			if (s_box)
+			{
+				DrawBox(screenh.x - (width / 2), screenh.y, width, height, 1, 255, 0, 0, 255);
+			}
 
 			DrawString(finaltext.c_str(), screenh.x - (width / 2), screenn.y + 15, 255, 0, 0, pFont);
 		}
@@ -171,13 +175,18 @@ void render_esp()
 
 void render()
 {
-	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
+	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 255, 0), 1.0f, 0);
 
 	d3ddev->BeginScene();
 
-	render_static();
-	render_menu(d3ddev);
-	render_esp();
+	__try {
+		render_static();
+		render_menu(d3ddev);
+		render_esp();
+	}
+	__except (filterException(GetExceptionCode(), GetExceptionInformation())) {
+		printf("[-] Error in %s", __FUNCTION__);
+	}
 
 	d3ddev->EndScene();
 	d3ddev->Present(NULL, NULL, NULL, NULL);
@@ -233,7 +242,7 @@ void __stdcall RunOverlay()
 	wc.lpfnWndProc = WindowProc;
 	wc.hInstance = hInstance;
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground = (HBRUSH)RGB(0, 0, 0);
+	wc.hbrBackground = (HBRUSH)RGB(0, 255, 0);
 	wc.lpszClassName = "WindowClass";
 
 	RegisterClassEx(&wc);
@@ -250,8 +259,8 @@ void __stdcall RunOverlay()
 		NULL);
 
 	SetWindowLong(hWnd, GWL_EXSTYLE, (int)GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);
-	SetLayeredWindowAttributes(hWnd, RGB(0, 0, 0), 0, ULW_COLORKEY);
-	SetLayeredWindowAttributes(hWnd, 0, 255, LWA_ALPHA);
+	SetLayeredWindowAttributes(hWnd, RGB(0, 255, 0), 0, ULW_COLORKEY);
+	//SetLayeredWindowAttributes(hWnd, 0, 255, LWA_ALPHA);
 
 	ShowWindow(hWnd, SW_SHOW);
 
@@ -279,67 +288,67 @@ void __stdcall RunOverlay()
 	CloseWindow(hWnd);
 }
 
-void __stdcall entity_loop_thread( void* base_networkable )
+void __stdcall entity_loop_thread(void* base_networkable)
 {
-	while ( !should_exit )
-	{		
-		const auto unk1 = *reinterpret_cast< void** >( std::uintptr_t( base_networkable ) + 0xb8 );
+	while (!should_exit)
+	{
+		
+		
+		const auto unk1 = *reinterpret_cast<void**>(std::uintptr_t(base_networkable) + 0xb8);
 
-		if ( !unk1 )
+		if (!unk1)
 			continue;
 
-		const auto client_entities = *reinterpret_cast< entity_realm** >( unk1 );
+		const auto client_entities = *reinterpret_cast<entity_realm**>(unk1);
 
-		if ( !client_entities )
+		if (!client_entities)
 			continue;
 
 		const auto list = client_entities->list->values;
 
-		if ( !list )
+		if (!list)
 			continue;
 
-		entity_mutex.lock( );
+		entity_mutex.lock();
 
-		if ( entities.size( ) >= 500 )
-			entities.clear( );
+		if (entities.size() >= 500)
+			entities.clear();
 
-		entity_mutex.unlock( );
+		entity_mutex.unlock();
 
-		for ( auto i = 0u; i < list->size; i++ )
+		for (auto i = 0u; i < list->size; i++)
 		{
-			const auto element = *reinterpret_cast< void** >( std::uintptr_t( list->buffer ) + ( 0x20 + ( i * 8 ) ) );
+			const auto element = *reinterpret_cast<void**>(std::uintptr_t(list->buffer) + (0x20 + (i * 8)));
 
-			//printf(xorstr_("[>] %s"), utils::mono::get_class_name(element));
-
-			if ( !element || std::strstr( utils::mono::get_class_name( element ), xorstr_("BasePlayer") ) == nullptr )
+			if (!element || std::strstr(utils::mono::get_class_name(element), xorstr_("BasePlayer")) == nullptr)
 				continue;
 
-			const auto base_mono_object = *reinterpret_cast< void** >( std::uintptr_t( element ) + 0x10 );
+			const auto base_mono_object = *reinterpret_cast<void**>(std::uintptr_t(element) + 0x10);
 
-			if ( !base_mono_object )
+			if (!base_mono_object)
 				continue;
 
-			const auto object = *reinterpret_cast< void** >( std::uintptr_t( base_mono_object ) + 0x30 );
+			const auto object = *reinterpret_cast<void**>(std::uintptr_t(base_mono_object) + 0x30);
 
-			if ( !object )
+			if (!object)
 				continue;
 
-			const auto object_1 = *reinterpret_cast< game_object** >( std::uintptr_t( object ) + 0x30 );
+			const auto object_1 = *reinterpret_cast<game_object**>(std::uintptr_t(object) + 0x30);
 
-			if ( !object_1 )
+			if (!object_1)
 				continue;
 
 			const auto player = object_1->unk->player;
 
-			std::lock_guard guard( entity_mutex );
+			std::lock_guard guard(entity_mutex);
 
-			if ( !player || player->health <= 0.8f || std::find( entities.begin( ), entities.end( ), player ) != entities.end( ) )
+			if (!player || player->health <= 0.8f || std::find(entities.begin(), entities.end(), player) != entities.end())
 				continue;
 
-			entities.push_back( player );
+			entities.push_back(player);
 		}
 
-		std::this_thread::sleep_for( std::chrono::seconds( 10 ) );
+		std::this_thread::sleep_for(std::chrono::seconds(10));
 	}
 }
 
