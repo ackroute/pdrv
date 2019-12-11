@@ -27,7 +27,7 @@
 #include "module.h"
 #include "settings.h"
 
-#define TEST_BUILD true
+#define TEST_BUILD false
 
 int width = 1920;
 int height = 1080;
@@ -122,8 +122,8 @@ void render_esp()
 		if (!entity)
 			continue;
 
-		if (entity == local_player || entity->player_model->is_local_player)
-			continue;
+		/*if (entity == local_player || entity->player_model->is_local_player)
+			continue;*/
 
 		auto entity_head = utils::mono::transform::get_position(utils::game::get_head_transform(entity)); /* entity->model->transforms->head NOT head->transform */
 
@@ -131,10 +131,11 @@ void render_esp()
 			continue;
 
 		auto entity_neck = utils::mono::transform::get_position(entity->model->transforms->neck);
-		entity_neck.y -= 1.5f;
-
+		
 		if (entity_neck.empty())
 			continue;
+		
+		entity_neck.y -= 1.5f;
 
 		geo::vec2_t screenh;
 		geo::vec2_t screenn;
