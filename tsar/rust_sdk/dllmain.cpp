@@ -5,7 +5,8 @@
 	TODO:
 	- World to screen and overlay check resolution
 	- Hijack threads instead of creating them (check 
-	if not in the same thread!)
+	if not in the same thread!) - done
+	- Change font
 */
 
 #include <Windows.h>
@@ -19,10 +20,12 @@
 #include <chrono>
 #include <mutex>
 #include <vector>
+#include <map>
 #include "utils.hpp"
 #include "xor.h"
 #include "globals.h"
 #include "module.h"
+#include "settings.h"
 
 int width = 1920;
 int height = 1080;
@@ -54,6 +57,7 @@ LPD3DXFONT pFont;
 ID3DXLine* pLine;
 
 #include "draw.h"
+#include "menu.h"
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void initD3D(HWND hWnd)
@@ -83,7 +87,7 @@ void initD3D(HWND hWnd)
 	if (!pLine)
 		D3DXCreateLine(d3ddev, &pLine);
 
-	D3DXCreateFont(d3ddev, 17, 0, FW_NORMAL, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial"), &pFont);
+	D3DXCreateFont(d3ddev, 15, 0, FW_NORMAL, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Tahoma"), &pFont);
 }
 
 char* ToChar(int num)
@@ -93,19 +97,19 @@ char* ToChar(int num)
 	return ibuff;
 }
 
-void render()
+void render_static() 
 {
-	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
-
-	d3ddev->BeginScene();
-
 	DrawString("xcheats.cc", 10, 10, 240, 0, 0, pFont);
+}
+
+void render_esp() 
+{
 
 	for (const auto& entity : entities)
 	{
 		if (entity == local_player || entity->player_model->is_local_player)
 			continue;
-		
+
 		auto entity_head = utils::mono::transform::get_position(utils::game::get_head_transform(entity)); /* entity->model->transforms->head NOT head->transform */
 
 		if (entity_head.empty())
@@ -122,22 +126,22 @@ void render()
 		if (utils::render::world_to_screen(camera, entity_head, &screenh) && utils::render::world_to_screen(camera, entity_neck, &screenn))
 		{
 			int health = (int)entity->health;
-			
+
 			// distance not work
-			
+
 			const auto matrix = camera.load(std::memory_order::memory_order_acquire)->view_matrix.transpose();
 			geo::vec3_t translation = { matrix[3][0], matrix[3][1], matrix[3][2] };
-			
+
 			DrawString(ToChar((int)matrix[3][0]), 50, (15 * 3), 255, 0, 0, pFont);
 			DrawString(ToChar((int)matrix[3][1]), 50, (15 * 4), 255, 0, 0, pFont);
 			DrawString(ToChar((int)matrix[3][2]), 50, (15 * 5), 255, 0, 0, pFont);
-			
+
 			float distance = entity_head.distance(translation);
 
 			if (distance < 0.05f)
 				continue;
-			
-			std::string name = utils::mono::to_string(entity->display_name);		
+
+			std::string name = utils::mono::to_string(entity->display_name);
 			DrawString(name.c_str(), screenh.x - 10, screenh.y + 15, 255, 0, 0, pFont);
 			DrawString(ToChar(health), screenh.x - 10, screenh.y + (15 * 2), 255, 0, 0, pFont);
 			DrawString(ToChar((int)distance), screenh.x - 10, screenh.y + (15 * 3), 255, 0, 0, pFont);
@@ -148,6 +152,17 @@ void render()
 			DrawBox(screenh.x - (width / 2), screenh.y, width, height, 1, 255, 0, 0, 255);
 		}
 	}
+}
+
+void render()
+{
+	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
+
+	d3ddev->BeginScene();
+
+	render_static();
+	render_menu(d3ddev);
+	render_esp();
 
 	d3ddev->EndScene();
 	d3ddev->Present(NULL, NULL, NULL, NULL);
@@ -175,6 +190,10 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 void __stdcall RunOverlay()
 {	
 	printf(xorstr_("[+] Overlay thread started\n"));
+
+	printf(xorstr_("[>] Initializing menu...\n"));
+	init_menu();
+	printf(xorstr_("[+] Menu initialited\n"));
 
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 	RECT rc;
