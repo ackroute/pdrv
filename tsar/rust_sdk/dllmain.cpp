@@ -27,6 +27,8 @@
 #include "module.h"
 #include "settings.h"
 
+#define TEST_BUILD true
+
 int width = 1920;
 int height = 1080;
 
@@ -99,7 +101,7 @@ char* ToChar(int num)
 
 void render_static() 
 {
-	DrawString("xcheats.cc", 10, 10, 240, 0, 0, pFont);
+	//DrawString("xcheats.cc", 10, 10, 240, 0, 0, pFont);
 }
 
 void render_esp() 
@@ -116,7 +118,7 @@ void render_esp()
 			continue;
 
 		auto entity_neck = utils::mono::transform::get_position(entity->model->transforms->neck);
-		entity_neck.y -= 5;
+		entity_neck.y -= 1.5f;
 
 		if (entity_neck.empty())
 			continue;
@@ -132,9 +134,9 @@ void render_esp()
 			const auto matrix = camera.load(std::memory_order::memory_order_acquire)->view_matrix.transpose();
 			geo::vec3_t translation = { matrix[3][0], matrix[3][1], matrix[3][2] };
 
-			DrawString(ToChar((int)matrix[3][0]), 50, (15 * 3), 255, 0, 0, pFont);
-			DrawString(ToChar((int)matrix[3][1]), 50, (15 * 4), 255, 0, 0, pFont);
-			DrawString(ToChar((int)matrix[3][2]), 50, (15 * 5), 255, 0, 0, pFont);
+			DrawString(ToChar((int)matrix[3][0]), 550, (15 * 3), 255, 0, 0, pFont);
+			DrawString(ToChar((int)matrix[3][1]), 550, (15 * 4), 255, 0, 0, pFont);
+			DrawString(ToChar((int)matrix[3][2]), 550, (15 * 5), 255, 0, 0, pFont);
 
 			float distance = entity_head.distance(translation);
 
@@ -142,14 +144,27 @@ void render_esp()
 				continue;
 
 			std::string name = utils::mono::to_string(entity->display_name);
-			DrawString(name.c_str(), screenh.x - 10, screenh.y + 15, 255, 0, 0, pFont);
-			DrawString(ToChar(health), screenh.x - 10, screenh.y + (15 * 2), 255, 0, 0, pFont);
-			DrawString(ToChar((int)distance), screenh.x - 10, screenh.y + (15 * 3), 255, 0, 0, pFont);
+
+			std::string finaltext = "";
+			if (s_name)
+			{
+				finaltext += name + "\n";
+			}
+			if (s_health)
+			{
+				finaltext += std::string(ToChar(health)) + "\n";
+			}
+			if (s_distance)
+			{
+				finaltext += std::string(ToChar((int)distance)) + "\n";
+			}
 
 			//DrawBox(screenh.x - 10, screenh.y - 10, 20, 20, 1, 255, 0, 0, 255);
-			float height = (abs(screenh.y - screenn.y)) / 4;
+			float height = abs(screenh.y - screenn.y);
 			float width = height * 0.65;
 			DrawBox(screenh.x - (width / 2), screenh.y, width, height, 1, 255, 0, 0, 255);
+
+			DrawString(finaltext.c_str(), screenh.x - (width / 2), screenn.y + 15, 255, 0, 0, pFont);
 		}
 	}
 }
@@ -551,13 +566,22 @@ bool __stdcall DllMain( HMODULE module, std::uint32_t call_reason, void* )
 	if ( call_reason != DLL_PROCESS_ATTACH )
 		return false;
 
-	//if ( const auto handle = CreateThread( nullptr, 0, reinterpret_cast< LPTHREAD_START_ROUTINE >( main_thread ), module, 0, nullptr ); handle != NULL )
-	//	CloseHandle( handle );
+	if (TEST_BUILD) 
+	{
+		AllocConsole();
+		freopen_s(reinterpret_cast<FILE**>(stdin), "CONIN$", "r", stdin);
+		freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
+		
+		if ( const auto handle = CreateThread( nullptr, 0, reinterpret_cast< LPTHREAD_START_ROUTINE >( main_thread ), module, 0, nullptr ); handle != NULL )
+			CloseHandle( handle );
 
-	Init();
-
-	//if (const auto handle = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(RunOverlay), module, 0, nullptr); handle != NULL)
-	//	CloseHandle(handle);
+		if (const auto handle = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(RunOverlay), module, 0, nullptr); handle != NULL)
+			CloseHandle(handle);
+	}
+	else 
+	{
+		Init();
+	}
 	
 	return true;
 }

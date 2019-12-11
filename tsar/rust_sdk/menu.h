@@ -46,7 +46,7 @@ void draw_menu_item(std::shared_ptr<ID3DMenuItem> item, const float padding)
 
 	if (item->is_subfolder() && std::static_pointer_cast<D3DMenuSubFolderItem>(item)->is_opened())
 	{
-		static auto length = strlen("[ - ] ");
+		static auto length = strlen(xorstr_("[ - ] "));
 
 		for (const auto& sub : std::static_pointer_cast<D3DMenuSubFolderItem>(item)->get_sub_items())
 		{
@@ -142,9 +142,11 @@ void handle_down()
 
 void init_menu() 
 {	
-	auto esp = std::make_shared<D3DMenuSubFolderItem>("ESP");
-	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>("Draw Players", test, true));
-	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>("Test2", test2, true));
+	auto esp = std::make_shared<D3DMenuSubFolderItem>(xorstr_("Wallhack"));
+	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Box"), s_box, true));
+	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Name"), s_name, true));
+	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Health"), s_health, true));
+	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Distance"), s_distance, true));
 
 	menu_items.emplace_back(esp);
 
