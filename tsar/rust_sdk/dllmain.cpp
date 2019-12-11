@@ -27,7 +27,7 @@
 #include "module.h"
 #include "settings.h"
 
-#define TEST_BUILD false
+#define TEST_BUILD true
 
 int width = 1920;
 int height = 1080;
@@ -101,7 +101,7 @@ void initD3D(HWND hWnd)
 
 char* ToChar(int num)
 {
-	char ibuff[24];
+	char ibuff[256];
 	sprintf(ibuff, "%i", num);
 	return ibuff;
 }
@@ -116,6 +116,7 @@ void render_static()
 
 void render_esp() 
 {
+	std::lock_guard guard(entity_mutex);
 	for (const auto& entity : entities)
 	{
 		if (!entity)
@@ -143,11 +144,10 @@ void render_esp()
 
 			int health = (int)entity->health;
 
-			std::string name = utils::mono::to_string(entity->display_name);
-
 			std::string finaltext = "";
 			if (s_name)
 			{
+				std::string name = utils::mono::to_string(entity->display_name);
 				finaltext += name + "\n";
 			}
 			if (s_health)
@@ -292,8 +292,6 @@ void __stdcall entity_loop_thread(void* base_networkable)
 {
 	while (!should_exit)
 	{
-		
-		
 		const auto unk1 = *reinterpret_cast<void**>(std::uintptr_t(base_networkable) + 0xb8);
 
 		if (!unk1)
@@ -511,7 +509,7 @@ void __stdcall main_thread()
 
 	std::printf(xorstr_("[+] BaseNetworkable: 0x%llx\n"), ( base_networkable - std::uintptr_t( GetModuleHandleA( "GameAssembly.dll" ) ) ) );
 
-	std::thread entity_iteration( &entity_loop_thread, *reinterpret_cast< void** >( base_networkable ) );
+	std::thread entity_iteration(&entity_loop_thread, *reinterpret_cast<void**>(base_networkable));
 
 	const auto game_object_manager_address = utils::memory::find_signature( "UnityPlayer.dll", "48 89 05 ? ? ? ? 48 83 c4 38 c3 48 c7 05 ? ? ? ? ? ? ? ? 48 83 c4 38 c3 cc cc cc cc cc 48" );
 
@@ -529,7 +527,7 @@ void __stdcall main_thread()
 	
 	while ( !GetAsyncKeyState( VK_END ) )
 	{
-		std::lock_guard guard( entity_mutex );
+		/*std::lock_guard guard( entity_mutex );
 
 		for ( const auto& entity : entities )
 		{
@@ -541,7 +539,7 @@ void __stdcall main_thread()
 				local_player = entity;
 				break;
 			}
-		}
+		}*/
 
 		std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
 	}
