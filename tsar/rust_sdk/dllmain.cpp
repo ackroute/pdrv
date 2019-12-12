@@ -64,7 +64,7 @@ ID3DXLine* pLine;
 
 int filterException(int code, PEXCEPTION_POINTERS ex) {
 	//std::cout << "Filtering " << std::hex << code << std::endl;
-	printf("[!] Error with code %x occured", code);
+	printf("[!] Error with code %x occured\n", code);
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
@@ -85,6 +85,9 @@ void initD3D(HWND hWnd)
 
 	d3dpp.EnableAutoDepthStencil = TRUE;
 	d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
+
+	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+	d3dpp.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 
 	d3d->CreateDevice(D3DADAPTER_DEFAULT,
 		D3DDEVTYPE_HAL,
@@ -120,6 +123,9 @@ void render_esp()
 	for (const auto& entity : entities)
 	{
 		if (!entity)
+			continue;
+
+		if (entity->model == nullptr)
 			continue;
 
 		/*if (entity == local_player || entity->player_model->is_local_player)
@@ -186,7 +192,7 @@ void render()
 		render_esp();
 	}
 	__except (filterException(GetExceptionCode(), GetExceptionInformation())) {
-		printf("[-] Error in %s", __FUNCTION__);
+		printf("[-] Error in %s\n", __FUNCTION__);
 	}
 
 	d3ddev->EndScene();
