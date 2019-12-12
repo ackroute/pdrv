@@ -164,7 +164,11 @@ void init_menu()
 	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Health"), s_health, true));
 	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Distance"), s_distance, true));
 
+	auto misc = std::make_shared<D3DMenuSubFolderItem>(xorstr_("Misc"));
+	misc->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("FPS limiter"), s_fpslimiter, true));
+
 	menu_items.emplace_back(esp);
+	menu_items.emplace_back(misc);
 
 	menu_items.at(0)->is_selected() = true;
 }

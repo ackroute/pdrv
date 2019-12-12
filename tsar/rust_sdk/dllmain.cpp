@@ -86,9 +86,6 @@ void initD3D(HWND hWnd)
 	d3dpp.EnableAutoDepthStencil = TRUE;
 	d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
 
-	d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
-	d3dpp.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
-
 	d3d->CreateDevice(D3DADAPTER_DEFAULT,
 		D3DDEVTYPE_HAL,
 		hWnd,
@@ -109,11 +106,44 @@ char* ToChar(int num)
 	return ibuff;
 }
 
+const std::string GetTime() 
+{
+	time_t     now = time(0);
+	struct tm  tstruct;
+	char       buf[80];
+	tstruct = *localtime(&now);
+	strftime(buf, sizeof(buf), "%X", &tstruct);
+
+	return buf;
+}
+
+DWORD lasttime = 0;
+static DWORD LastFrameTime = 0;
+DWORD FPSLimit = 60;
+
 void render_static() 
 {
 	if (!s_showmenu) 
 	{
 		DrawString("xcheats.cc", 10, 10, 240, 0, 0, pFont);
+		DrawString(GetTime().c_str(), 10, 10 + (17 * 1), 240, 0, 0, pFont);
+
+		DWORD currenttime = timeGetTime();
+
+		std::string mstext = std::string(ToChar((int)(currenttime - lasttime))) + "ms";
+		DrawString(mstext.c_str(), 10, 10 + (17 * 2), 240, 0, 0, pFont);
+
+		lasttime = timeGetTime();
+	}
+	if (s_fpslimiter) 
+	{
+		DWORD currentTime = timeGetTime();
+		if ((currentTime - LastFrameTime) < (1000 / FPSLimit))
+		{
+			Sleep(currentTime - LastFrameTime);
+		}
+		LastFrameTime = currentTime;
+		Sleep(1);
 	}
 }
 
@@ -126,6 +156,12 @@ void render_esp()
 			continue;
 
 		if (entity->model == nullptr)
+			continue;
+
+		if (entity->display_name == nullptr)
+			continue;
+
+		if (entity->player_model == nullptr)
 			continue;
 
 		/*if (entity == local_player || entity->player_model->is_local_player)
