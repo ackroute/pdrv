@@ -6,7 +6,7 @@
 	- World to screen and overlay check resolution
 	- Hijack threads instead of creating them (check 
 	if not in the same thread!) - done
-	- Change font
+	- Change font - done
 */
 
 #include <Windows.h>
@@ -53,7 +53,7 @@ LPDIRECT3D9 d3d;
 LPDIRECT3DDEVICE9 d3ddev;
 
 HWND hWnd;
-const MARGINS  margin = { 0,0,width,height };
+const MARGINS margin = { 0,0,width,height };
 
 LPD3DXFONT pFont;
 ID3DXLine* pLine;
