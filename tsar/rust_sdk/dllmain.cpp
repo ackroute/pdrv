@@ -170,6 +170,9 @@ void render_esp()
 		if (entity == local_player)
 			continue;
 
+		if (s_sleepercheck && entity->sleeping)
+			continue;
+
 		auto entity_head = utils::mono::transform::get_position(utils::game::get_head_transform(entity)); /* entity->model->transforms->head NOT head->transform */
 
 		if (entity_head.empty())
@@ -218,6 +221,11 @@ void render_esp()
 			}
 
 			DrawString(finaltext.c_str(), screenh.x - (width / 2), screenn.y + 15, 255, 0, 0, pFont);
+		}
+
+		if (s_aim) 
+		{
+
 		}
 	}
 }
