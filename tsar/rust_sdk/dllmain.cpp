@@ -105,7 +105,7 @@ void initD3D(HWND hWnd)
 char* ToChar(int num)
 {
 	char* ibuff = (char*)malloc(50);
-	sprintf(ibuff, "%i\0", num);
+	sprintf(ibuff, "%i", num);
 	return ibuff;
 }
 
@@ -136,8 +136,13 @@ void render_static()
 		char* milliseconds = ToChar((int)(currenttime - lasttime));
 		std::string mstext = std::string(milliseconds) + xorstr_(" ms");
 		DrawString(mstext.c_str(), 10, 10 + (17 * 2), 240, 0, 0, pFont);
+		
+		char* numbere = ToChar(entities.size());
+		std::string entityt = "Ent: " + std::string(numbere);
+		DrawString(entityt.c_str(), 10, 10 + (17 * 3), 240, 0, 0, pFont);
 
 		free(milliseconds); // no memory leaks lol
+		free(numbere);
 		lasttime = timeGetTime();
 	}
 	if (s_crosshair) 
@@ -151,9 +156,7 @@ void render_static()
 }
 
 void render_esp() 
-{
-	std::lock_guard guard(entity_mutex);
-	
+{	
 	base_player* aiment = nullptr;
 	int aimfov = 999;
 
@@ -247,7 +250,7 @@ void render_esp()
 		}
 	}
 
-	if (s_aim && (GetKeyState(AIM_KEY) & 0x8000))
+	if (s_aim && (GetAsyncKeyState(AIM_KEY) & 0x8000))
 	{
 		NULL_CHECK_RET(local_player);
 		NULL_CHECK_RET(local_player->input);
@@ -633,7 +636,7 @@ void __stdcall main_thread()
 
 	std::thread etc_iteration( &camera_loop_thread, *reinterpret_cast< void** >( game_object_manager ) );
 	
-	while ( !GetAsyncKeyState( VK_END ) )
+	while ( true )
 	{
 		std::lock_guard guard( entity_mutex );
 
@@ -654,14 +657,14 @@ void __stdcall main_thread()
 		std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
 	}
 
-	should_exit = true;
+	/*should_exit = true;
 	entity_iteration.join( );
 	etc_iteration.join( );
 
 	fclose( reinterpret_cast< FILE* >( stdin ) );
 	fclose( reinterpret_cast< FILE* >( stdout ) );
 	FreeConsole( );
-	PostMessage( GetConsoleWindow( ), WM_CLOSE, 0, 0 );
+	PostMessage( GetConsoleWindow( ), WM_CLOSE, 0, 0 );*/
 }
 
 void __stdcall Init() 

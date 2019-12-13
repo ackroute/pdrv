@@ -41,7 +41,7 @@ struct player_input
 
 struct player_model
 {
-	char pad_0[ 0x1E8 ];
+	char pad_0[ 0x1E8 ]; // wrong
 	bool is_local_player;
 };
 
