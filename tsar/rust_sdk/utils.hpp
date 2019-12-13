@@ -130,7 +130,7 @@ namespace utils
 		{
 			geo::vec3_t get_position( void* transform )
 			{
-				if ( !transform )
+				if ( !transform || (uint64_t)transform < 0x1000)
 					return {};
 
 				geo::vec3_t position{};
@@ -180,6 +180,8 @@ namespace utils
 	{
 		bool world_to_screen( base_camera* camera, geo::vec3_t& world, geo::vec2_t* screen )
 		{
+			NULL_CHECK_RET(camera) false;
+			
 			const auto matrix = camera->view_matrix.transpose( );
 
 			const geo::vec3_t translation = { matrix[ 3 ][ 0 ], matrix[ 3 ][ 1 ], matrix[ 3 ][ 2 ] };
@@ -207,7 +209,7 @@ namespace utils
 	{
 		unity_transform* get_head_transform(base_player* entity)
 		{
-			return entity->model->head_bone_transform;
+			return entity->model->transforms->head;
 		}
 	}
 }

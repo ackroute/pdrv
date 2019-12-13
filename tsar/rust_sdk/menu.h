@@ -166,6 +166,7 @@ void init_menu()
 
 	auto misc = std::make_shared<D3DMenuSubFolderItem>(xorstr_("Misc"));
 	misc->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("FPS limiter"), s_fpslimiter, true));
+	misc->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Crosshair"), s_crosshair, true));
 
 	menu_items.emplace_back(esp);
 	menu_items.emplace_back(misc);

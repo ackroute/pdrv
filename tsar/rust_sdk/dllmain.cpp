@@ -9,6 +9,9 @@
 	- Change font - done
 */
 
+#define NULL_CHECK_RET(x) if ((uint64_t)x < 0x1000) return
+#define NULL_CHECK(x) if ((uint64_t)x < 0x1000) continue
+
 #include <Windows.h>
 #include <d3d9.h>
 #include <iostream>
@@ -27,7 +30,7 @@
 #include "module.h"
 #include "settings.h"
 
-#define TEST_BUILD false
+#define TEST_BUILD true
 
 int width = 1920;
 int height = 1080;
@@ -101,8 +104,8 @@ void initD3D(HWND hWnd)
 
 char* ToChar(int num)
 {
-	char ibuff[256];
-	sprintf(ibuff, "%i", num);
+	char* ibuff = (char*)malloc(50);
+	sprintf(ibuff, "%i\0", num);
 	return ibuff;
 }
 
@@ -125,25 +128,25 @@ void render_static()
 {
 	if (!s_showmenu) 
 	{
-		DrawString("xcheats.cc", 10, 10, 240, 0, 0, pFont);
+		DrawString(xorstr_("xcheats.cc"), 10, 10, 240, 0, 0, pFont);
 		DrawString(GetTime().c_str(), 10, 10 + (17 * 1), 240, 0, 0, pFont);
 
 		DWORD currenttime = timeGetTime();
 
-		std::string mstext = std::string(ToChar((int)(currenttime - lasttime))) + "ms";
+		char* milliseconds = ToChar((int)(currenttime - lasttime));
+		std::string mstext = std::string(milliseconds) + xorstr_("ms");
 		DrawString(mstext.c_str(), 10, 10 + (17 * 2), 240, 0, 0, pFont);
 
+		free(milliseconds); // no memory leaks lol
 		lasttime = timeGetTime();
 	}
-	if (s_fpslimiter) 
+	if (s_crosshair) 
 	{
-		DWORD currentTime = timeGetTime();
-		if ((currentTime - LastFrameTime) < (1000 / FPSLimit))
-		{
-			Sleep(currentTime - LastFrameTime);
-		}
-		LastFrameTime = currentTime;
-		Sleep(1);
+		int size = 10;
+		int cetnerx = width / 2;
+		int cetnery = height / 2;
+		DrawLine(cetnerx - size, cetnery, cetnerx + size, cetnery, 240, 0, 0, 255);
+		DrawLine(cetnerx, cetnery - size, cetnerx, cetnery + size, 240, 0, 0, 255);
 	}
 }
 
@@ -155,17 +158,17 @@ void render_esp()
 		if (!entity)
 			continue;
 
-		if (entity->model == nullptr)
-			continue;
+		NULL_CHECK(entity->display_name);
+		NULL_CHECK(entity->player_model);
+		NULL_CHECK(entity->model);
+		NULL_CHECK(entity->model->head_bone_transform);
+		NULL_CHECK(entity->model->transforms);
+		NULL_CHECK(entity->model->transforms->head);
+		NULL_CHECK(entity->model->transforms->neck);
+		NULL_CHECK(camera.load());
 
-		if (entity->display_name == nullptr)
+		if (entity == local_player || entity->player_model->is_local_player)
 			continue;
-
-		if (entity->player_model == nullptr)
-			continue;
-
-		/*if (entity == local_player || entity->player_model->is_local_player)
-			continue;*/
 
 		auto entity_head = utils::mono::transform::get_position(utils::game::get_head_transform(entity)); /* entity->model->transforms->head NOT head->transform */
 
@@ -195,11 +198,14 @@ void render_esp()
 			}
 			if (s_health)
 			{
+				char* num = ToChar(health);
 				finaltext += std::string(ToChar(health)) + "\n";
+				free(num);
 			}
 			if (s_distance)
 			{
-				finaltext += std::string(ToChar((int)abs(screenh.y - screenn.y))) + "\n";
+				//char* num = ToChar(health);
+				//finaltext += std::string(ToChar((int)abs(screenh.y - screenn.y))) + "\n";
 			}
 
 			//DrawBox(screenh.x - 10, screenh.y - 10, 20, 20, 1, 255, 0, 0, 255);
@@ -228,7 +234,7 @@ void render()
 		render_esp();
 	}
 	__except (filterException(GetExceptionCode(), GetExceptionInformation())) {
-		printf("[-] Error in %s\n", __FUNCTION__);
+		printf(xorstr_("[-] Error in %s\n"), __FUNCTION__);
 	}
 
 	d3ddev->EndScene();
@@ -317,7 +323,19 @@ void __stdcall RunOverlay()
 
 		if (!FindWindow(GAME_WINDOW_CLASS, GAME_WINDOW))
 			printf(xorstr_("[-] Game window is closed\n"));
+		// Main render loop
 		render();
+		// Fps limiter
+		if (s_fpslimiter)
+		{
+			DWORD currentTime = timeGetTime();
+			if ((currentTime - LastFrameTime) < (1000 / FPSLimit))
+			{
+				Sleep(currentTime - LastFrameTime);
+			}
+			LastFrameTime = currentTime;
+			Sleep(1);
+		}
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
@@ -570,19 +588,31 @@ void __stdcall main_thread()
 	
 	while ( !GetAsyncKeyState( VK_END ) )
 	{
-		/*std::lock_guard guard( entity_mutex );
+		std::lock_guard guard( entity_mutex );
 
 		for ( const auto& entity : entities )
 		{
 			if ( !entity )
 				continue;
 
-			if ( entity->player_model->is_local_player )
+			NULL_CHECK(entity->player_model);
+
+			/*if ( entity->player_model->is_local_player )
 			{
 				local_player = entity;
 				break;
+			}*/
+
+			if (entity->player_model->is_local_player)
+			{
+				printf("found ree\n");
+				break;
 			}
-		}*/
+			else 
+			{
+				printf("nope\n");
+			}
+		}
 
 		std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
 	}
