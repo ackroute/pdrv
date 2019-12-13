@@ -8,3 +8,5 @@ static bool s_name;
 static bool s_health;
 static bool s_distance;
 static bool s_crosshair;
+
+static bool s_aim;

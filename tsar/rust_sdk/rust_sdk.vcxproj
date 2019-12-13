@@ -183,6 +183,7 @@
     <ClInclude Include="menu.h" />
     <ClInclude Include="module.h" />
     <ClInclude Include="settings.h" />
+    <ClInclude Include="static.h" />
     <ClInclude Include="utils.hpp" />
     <ClInclude Include="vector.hpp" />
     <ClInclude Include="xor.h" />

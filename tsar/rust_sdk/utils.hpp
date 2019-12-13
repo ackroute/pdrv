@@ -12,6 +12,7 @@
 
 #include "vector.hpp"
 #include "classes.hpp"
+#include "static.h"
 
 std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 
@@ -210,6 +211,11 @@ namespace utils
 		unity_transform* get_head_transform(base_player* entity)
 		{
 			return entity->model->transforms->head;
+		}
+
+		bool is_local_player(player_model* model) 
+		{
+			return *(bool*)(model + PLAYERMODEL_LOCAL);
 		}
 	}
 }

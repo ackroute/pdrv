@@ -167,7 +167,7 @@ void render_esp()
 		NULL_CHECK(entity->model->transforms->neck);
 		NULL_CHECK(camera.load());
 
-		if (entity == local_player || entity->player_model->is_local_player)
+		if (entity == local_player)
 			continue;
 
 		auto entity_head = utils::mono::transform::get_position(utils::game::get_head_transform(entity)); /* entity->model->transforms->head NOT head->transform */
@@ -597,20 +597,10 @@ void __stdcall main_thread()
 
 			NULL_CHECK(entity->player_model);
 
-			/*if ( entity->player_model->is_local_player )
+			if (utils::game::is_local_player(entity->player_model))
 			{
 				local_player = entity;
 				break;
-			}*/
-
-			if (entity->player_model->is_local_player)
-			{
-				printf("found ree\n");
-				break;
-			}
-			else 
-			{
-				printf("nope\n");
 			}
 		}
 

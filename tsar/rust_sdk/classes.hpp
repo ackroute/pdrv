@@ -41,11 +41,17 @@ struct player_input
 
 struct player_model
 {
-	char pad_0[ 0x1d4 ];
-	bool is_visible;
-	char pad_1[ 0xc ];
+	char pad_0[ 0x1E8 ];
 	bool is_local_player;
 };
+
+/*struct player_model
+{
+	char pad_0[0x1d4]; // 468
+	bool is_visible; // 1
+	char pad_1[0xc]; // 12
+	bool is_local_player; // 481
+};*/
 
 struct unity_transform
 {
