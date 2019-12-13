@@ -134,7 +134,7 @@ void render_static()
 		DWORD currenttime = timeGetTime();
 
 		char* milliseconds = ToChar((int)(currenttime - lasttime));
-		std::string mstext = std::string(milliseconds) + xorstr_("ms");
+		std::string mstext = std::string(milliseconds) + xorstr_(" ms");
 		DrawString(mstext.c_str(), 10, 10 + (17 * 2), 240, 0, 0, pFont);
 
 		free(milliseconds); // no memory leaks lol
@@ -153,6 +153,10 @@ void render_static()
 void render_esp() 
 {
 	std::lock_guard guard(entity_mutex);
+	
+	base_player* aiment = nullptr;
+	int aimfov = 999;
+
 	for (const auto& entity : entities)
 	{
 		if (!entity)
@@ -223,10 +227,45 @@ void render_esp()
 			DrawString(finaltext.c_str(), screenh.x - (width / 2), screenn.y + 15, 255, 0, 0, pFont);
 		}
 
-		if (s_aim) 
+		if (s_aim)
 		{
+			NULL_CHECK(local_player);
+			NULL_CHECK(local_player->input);
+			NULL_CHECK(local_player->model);
+			NULL_CHECK(local_player->model->transforms);
+			NULL_CHECK(local_player->model->transforms->head);
+			
+			const auto local_head = utils::mono::transform::get_position(local_player->model->transforms->head);
+			auto anglecalc = utils::math::calculate_angle(local_head, entity_head);
+			const auto calculated_fov = utils::math::calculate_fov(local_player->input->body_angles, anglecalc);
 
+			if (calculated_fov < aimfov)
+			{
+				aimfov = calculated_fov;
+				aiment = entity;
+			}
 		}
+	}
+
+	if (s_aim)
+	{
+		NULL_CHECK_RET(local_player);
+		NULL_CHECK_RET(local_player->input);
+		NULL_CHECK_RET(local_player->model);
+		NULL_CHECK_RET(local_player->model->transforms);
+		NULL_CHECK_RET(local_player->model->transforms->head);
+		
+		// entity->model->transforms->head;
+		NULL_CHECK_RET(aiment);
+		NULL_CHECK_RET(aiment->model);
+		NULL_CHECK_RET(aiment->model->transforms);
+		NULL_CHECK_RET(aiment->model->transforms->head);
+
+		const auto local_head = utils::mono::transform::get_position(local_player->model->transforms->head);
+		const auto entity_head = utils::mono::transform::get_position(utils::game::get_head_transform(aiment));
+		auto anglecalc = utils::math::calculate_angle(local_head, entity_head);
+
+		local_player->input->body_angles = anglecalc;
 	}
 }
 

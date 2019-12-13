@@ -173,6 +173,7 @@ void init_menu()
 	misc->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Crosshair"), s_crosshair, true));
 
 	menu_items.emplace_back(esp);
+	menu_items.emplace_back(aim);
 	menu_items.emplace_back(misc);
 
 	menu_items.at(0)->is_selected() = true;
