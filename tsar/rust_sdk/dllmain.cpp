@@ -247,7 +247,7 @@ void render_esp()
 		}
 	}
 
-	if (s_aim)
+	if (s_aim && (GetKeyState(AIM_KEY) & 0x8000))
 	{
 		NULL_CHECK_RET(local_player);
 		NULL_CHECK_RET(local_player->input);
