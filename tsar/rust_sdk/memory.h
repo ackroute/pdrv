@@ -10,6 +10,11 @@ enum ProcessAccess : DWORD
 	ReadWrite = ReadOnly | WriteOnly
 };
 
+struct LargeMem 
+{
+	char buffer[1024];
+};
+
 bool open() 
 {
 	prochandle = OpenProcess(ProcessAccess::ReadWrite, false, GetCurrentProcessId());
@@ -33,9 +38,20 @@ inline T read(uint64_t addr)
 	}
 
 	T val = T();
-	ReadProcessMemory(prochandle, (LPCVOID)addr, &val, sizeof(T), NULL);
+	bool status = ReadProcessMemory(prochandle, (LPCVOID)addr, &val, sizeof(T), NULL);
+	if (!status) 
+	{
+		printf(xorstr_("[-] ReadProcessMemory failed with code %d\n"), GetLastError());
+	}
 
 	return val;
+}
+
+template<typename T>
+inline T readl(uint64_t addr)
+{
+	LargeMem lm = read<LargeMem>(addr);
+	return *(T*)&lm;
 }
 
 template<typename T>
@@ -47,5 +63,9 @@ inline void write(uint64_t addr, T value)
 		return;
 	}
 
-	WriteProcessMemory(prochandle, (LPVOID)addr, &value, sizeof(T), NULL);
+	bool status = WriteProcessMemory(prochandle, (LPVOID)addr, &value, sizeof(T), NULL);
+	if (!status)
+	{
+		printf(xorstr_("[-] WriteProcessMemory failed with code %d\n"), GetLastError());
+	}
 }

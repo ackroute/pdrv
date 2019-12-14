@@ -35,7 +35,7 @@
 #include "module.h"
 #include "settings.h"
 
-#define TEST_BUILD false
+#define TEST_BUILD true
 #define TARGET_THREAD 6
 
 int width = 1920;
@@ -185,29 +185,29 @@ geo::vec3_t get_position(void* transforms)
 {
 	uint64_t transform = (uint64_t)transforms;
 
-	auto transform_internal = *(uint64_t*)(transform + 0x10);
+	auto transform_internal = read<uint64_t>(transform + 0x10);
 	if (!transform_internal)
 	{
 		printf(xorstr_("[-] Failed to get internal transform\n"));
 		return {};
 	}
 
-	auto some_ptr = *(uint64_t*)(transform_internal + 0x38);
-	auto index = *(uint32_t*)(transform_internal + 0x38 + sizeof(uint64_t));
+	auto some_ptr = read<uint64_t>(transform_internal + 0x38);
+	auto index = read<uint32_t>(transform_internal + 0x38 + sizeof(uint64_t));
 	if (!some_ptr)
 	{
 		printf(xorstr_("[-] Failed to get some ptr\n"));
 		return {};
 	}
 
-	auto relation_array = *(uint64_t*)(some_ptr + 0x18);
+	auto relation_array = read<uint64_t>(some_ptr + 0x18);
 	if (!relation_array)
 	{
 		printf(xorstr_("[-] Failed to read relation array\n"));
 		return {};
 	}
 
-	auto dependency_index_array = *(uint64_t*)(some_ptr + 0x20);
+	auto dependency_index_array = read<uint64_t>(some_ptr + 0x20);
 	if (!dependency_index_array)
 	{
 		printf(xorstr_("[-] Failed to read depency index arr\n"));
@@ -220,16 +220,16 @@ geo::vec3_t get_position(void* transforms)
 	__m128 xmmword_1410D1360 = { -2.f, -2.f, 2.f, 0.f };
 	__m128 temp_1;
 	__m128 temp_2;
-	auto temp_main = *(__m128*)(relation_array + index * 48);
-	auto dependency_index = *(int32_t*)(dependency_index_array + index * 4);
+	auto temp_main = read<__m128>(relation_array + index * 48);
+	auto dependency_index = read<int32_t>(dependency_index_array + index * 4);
 
 	while (dependency_index >= 0)
 	{
 		auto relation_index = 6 * dependency_index;
 
-		temp_0 = *(__m128i*)(relation_array + 8 * relation_index + 16);
-		temp_1 = *(__m128*)(relation_array + 8 * relation_index + 32);
-		temp_2 = *(__m128*)(relation_array + 8 * relation_index);
+		temp_0 = read<__m128i>(relation_array + 8 * relation_index + 16);
+		temp_1 = read<__m128>(relation_array + 8 * relation_index + 32);
+		temp_2 = read<__m128>(relation_array + 8 * relation_index);
 
 		__m128 v10 = _mm_mul_ps(temp_1, temp_main);
 		__m128 v11 = _mm_castsi128_ps(_mm_shuffle_epi32(temp_0, 0));
@@ -261,7 +261,7 @@ geo::vec3_t get_position(void* transforms)
 			temp_2);
 
 		temp_main = v17;
-		dependency_index = *(int32_t*)(dependency_index_array + dependency_index * 4);
+		dependency_index = read<int32_t>(dependency_index_array + dependency_index * 4);
 	}
 
 	return *(geo::vec3_t*)(&temp_main);
@@ -288,8 +288,8 @@ void render_esp()
 		NULL_CHECK(entity->model->transforms->neck->transform);
 		NULL_CHECK(camera.load());
 
-		if (entity == local_player)
-			continue;
+		//if (entity == local_player)
+		//	continue;
 
 		if (s_sleepercheck && entity->sleeping)
 			continue;

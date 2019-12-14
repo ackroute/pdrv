@@ -209,14 +209,23 @@ namespace utils
 	}
 	namespace game 
 	{
+		model_transforms get_model_tranforms(base_player* entity) 
+		{
+			base_player pl = read<base_player>((uint64_t)entity);
+			model ml = read<model>((uint64_t)pl.model);
+			model_transforms mt = read<model_transforms>((uint64_t)ml.transforms);
+			return mt;
+		}
+		
 		unity_transform* get_head_transform(base_player* entity)
 		{
-			return entity->model->transforms->head;
+			model_transforms mt = get_model_tranforms(entity);
+			return mt.head;
 		}
 
 		bool is_local_player(player_model* model) 
 		{
-			return *(bool*)(model + PLAYERMODEL_LOCAL);
+			return read<bool>((uint64_t)model + PLAYERMODEL_LOCAL);
 		}
 	}
 }
