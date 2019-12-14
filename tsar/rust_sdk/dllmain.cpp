@@ -30,7 +30,7 @@
 #include "module.h"
 #include "settings.h"
 
-#define TEST_BUILD false
+#define TEST_BUILD true
 
 int width = 1920;
 int height = 1080;
@@ -170,6 +170,92 @@ void render_static()
 	}
 }
 
+geo::vec3_t get_position(void* transforms)
+{
+	uint64_t transform = (uint64_t)transforms;
+
+	auto transform_internal = *(uint64_t*)(transform + 0x10);
+	if (!transform_internal)
+	{
+		printf(xorstr_("[-] Failed to get internal transform\n"));
+		return {};
+	}
+
+	auto some_ptr = *(uint64_t*)(transform_internal + 0x38);
+	auto index = *(uint32_t*)(transform_internal + 0x38 + sizeof(uint64_t));
+	if (!some_ptr)
+	{
+		printf(xorstr_("[-] Failed to get some ptr\n"));
+		return {};
+	}
+
+	auto relation_array = *(uint64_t*)(some_ptr + 0x18);
+	if (!relation_array)
+	{
+		printf(xorstr_("[-] Failed to read relation array\n"));
+		return {};
+	}
+
+	auto dependency_index_array = *(uint64_t*)(some_ptr + 0x20);
+	if (!dependency_index_array)
+	{
+		printf(xorstr_("[-] Failed to read depency index arr\n"));
+		return {};
+	}
+
+	__m128i temp_0;
+	__m128 xmmword_1410D1340 = { -2.f, 2.f, -2.f, 0.f };
+	__m128 xmmword_1410D1350 = { 2.f, -2.f, -2.f, 0.f };
+	__m128 xmmword_1410D1360 = { -2.f, -2.f, 2.f, 0.f };
+	__m128 temp_1;
+	__m128 temp_2;
+	auto temp_main = *(__m128*)(relation_array + index * 48);
+	auto dependency_index = *(int32_t*)(dependency_index_array + index * 4);
+
+	while (dependency_index >= 0)
+	{
+		auto relation_index = 6 * dependency_index;
+
+		temp_0 = *(__m128i*)(relation_array + 8 * relation_index + 16);
+		temp_1 = *(__m128*)(relation_array + 8 * relation_index + 32);
+		temp_2 = *(__m128*)(relation_array + 8 * relation_index);
+
+		__m128 v10 = _mm_mul_ps(temp_1, temp_main);
+		__m128 v11 = _mm_castsi128_ps(_mm_shuffle_epi32(temp_0, 0));
+		__m128 v12 = _mm_castsi128_ps(_mm_shuffle_epi32(temp_0, 85));
+		__m128 v13 = _mm_castsi128_ps(_mm_shuffle_epi32(temp_0, -114));
+		__m128 v14 = _mm_castsi128_ps(_mm_shuffle_epi32(temp_0, -37));
+		__m128 v15 = _mm_castsi128_ps(_mm_shuffle_epi32(temp_0, -86));
+		__m128 v16 = _mm_castsi128_ps(_mm_shuffle_epi32(temp_0, 113));
+		__m128 v17 = _mm_add_ps(
+			_mm_add_ps(
+				_mm_add_ps(
+					_mm_mul_ps(
+						_mm_sub_ps(
+							_mm_mul_ps(_mm_mul_ps(v11, xmmword_1410D1350), v13),
+							_mm_mul_ps(_mm_mul_ps(v12, xmmword_1410D1360), v14)),
+						_mm_castsi128_ps(_mm_shuffle_epi32(_mm_castps_si128(v10), -86))),
+					_mm_mul_ps(
+						_mm_sub_ps(
+							_mm_mul_ps(_mm_mul_ps(v15, xmmword_1410D1360), v14),
+							_mm_mul_ps(_mm_mul_ps(v11, xmmword_1410D1340), v16)),
+						_mm_castsi128_ps(_mm_shuffle_epi32(_mm_castps_si128(v10), 85)))),
+				_mm_add_ps(
+					_mm_mul_ps(
+						_mm_sub_ps(
+							_mm_mul_ps(_mm_mul_ps(v12, xmmword_1410D1340), v16),
+							_mm_mul_ps(_mm_mul_ps(v15, xmmword_1410D1350), v13)),
+						_mm_castsi128_ps(_mm_shuffle_epi32(_mm_castps_si128(v10), 0))),
+					v10)),
+			temp_2);
+
+		temp_main = v17;
+		dependency_index = *(int32_t*)(dependency_index_array + dependency_index * 4);
+	}
+
+	return *(geo::vec3_t*)(&temp_main);
+}
+
 void render_esp() 
 {	
 	base_player* aiment = nullptr;
@@ -197,12 +283,14 @@ void render_esp()
 		if (s_sleepercheck && entity->sleeping)
 			continue;
 
-		auto entity_head = utils::mono::transform::get_position(utils::game::get_head_transform(entity)); /* entity->model->transforms->head NOT head->transform */
+		unity_transform head_tranform = *entity->model->transforms->head;
+		auto entity_head = get_position(&head_tranform); /* entity->model->transforms->head NOT head->transform */
 
 		if (entity_head.empty())
 			continue;
 
-		auto entity_neck = utils::mono::transform::get_position(entity->model->transforms->neck);
+		unity_transform neck_tranform = *entity->model->transforms->neck;
+		auto entity_neck = get_position(&neck_tranform);
 		
 		if (entity_neck.empty())
 			continue;
@@ -256,7 +344,9 @@ void render_esp()
 			NULL_CHECK(local_player->model->transforms->head);
 			NULL_CHECK(local_player->model->transforms->head->transform);
 			
-			const auto local_head = utils::mono::transform::get_position(local_player->model->transforms->head);
+			unity_transform local_tranform = *local_player->model->transforms->head;
+			const auto local_head = get_position(&local_tranform);
+			
 			auto anglecalc = utils::math::calculate_angle(local_head, entity_head);
 			const auto calculated_fov = utils::math::calculate_fov(local_player->input->body_angles, anglecalc);
 
@@ -284,8 +374,10 @@ void render_esp()
 		NULL_CHECK_RET(aiment->model->transforms->head);
 		NULL_CHECK_RET(aiment->model->transforms->head->transform);
 
-		const auto local_head = utils::mono::transform::get_position(local_player->model->transforms->head);
-		const auto entity_head = utils::mono::transform::get_position(utils::game::get_head_transform(aiment));
+		unity_transform local_tranform = *local_player->model->transforms->head;
+		const auto local_head = get_position(&local_tranform);
+		unity_transform head_tranform = *aiment->model->transforms->head;
+		const auto entity_head = get_position(&head_tranform);
 		auto anglecalc = utils::math::calculate_angle(local_head, entity_head);
 
 		local_player->input->body_angles = anglecalc;

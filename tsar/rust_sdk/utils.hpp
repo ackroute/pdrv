@@ -129,7 +129,7 @@ namespace utils
 
 		namespace transform
 		{
-			geo::vec3_t get_position( void* transform )
+			/*geo::vec3_t get_position( void* transform )
 			{
 				if ((uint64_t)transform < 0x1000)
 					return {};
@@ -144,7 +144,7 @@ namespace utils
 				get_position_injected( transform, position );
 
 				return position;
-			}
+			}*/
 		}
 	}
 	namespace math
