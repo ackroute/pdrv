@@ -109,6 +109,14 @@ char* ToChar(int num)
 	return ibuff;
 }
 
+char* ToCharL(int num)
+{
+	char* ibuff = (char*)malloc(50);
+	sprintf(ibuff, "%llx", num);
+	return ibuff;
+}
+
+
 const std::string GetTime() 
 {
 	time_t     now = time(0);
@@ -137,12 +145,7 @@ void render_static()
 		std::string mstext = std::string(milliseconds) + xorstr_(" ms");
 		DrawString(mstext.c_str(), 10, 10 + (17 * 2), 240, 0, 0, pFont);
 		
-		char* numbere = ToChar(entities.size());
-		std::string entityt = "Ent: " + std::string(numbere);
-		DrawString(entityt.c_str(), 10, 10 + (17 * 3), 240, 0, 0, pFont);
-
 		free(milliseconds); // no memory leaks lol
-		free(numbere);
 		lasttime = timeGetTime();
 	}
 	if (s_crosshair) 
@@ -152,6 +155,18 @@ void render_static()
 		int cetnery = height / 2;
 		DrawLine(cetnerx - size, cetnery, cetnerx + size, cetnery, 240, 0, 0, 255);
 		DrawLine(cetnerx, cetnery - size, cetnerx, cetnery + size, 240, 0, 0, 255);
+	}
+	if (s_debuginfo) 
+	{
+		char* numbere = ToChar(entities.size());
+		std::string entityt = "Ent: " + std::string(numbere);
+		DrawString(entityt.c_str(), 10, 10 + (17 * 5), 240, 0, 0, pFont);
+		free(numbere);
+
+		char* numberl = ToCharL((uint64_t)local_player);
+		std::string entityl = "LocalPlayer: " + std::string(numberl);
+		DrawString(entityl.c_str(), 10, 10 + (17 * 6), 240, 0, 0, pFont);
+		free(numberl);
 	}
 }
 
