@@ -35,7 +35,7 @@
 #include "module.h"
 #include "settings.h"
 
-#define TEST_BUILD true
+#define TEST_BUILD false
 #define TARGET_THREAD 6
 
 int width = 1920;
@@ -288,8 +288,8 @@ void render_esp()
 		NULL_CHECK(entity->model->transforms->neck->transform);
 		NULL_CHECK(camera.load());
 
-		//if (entity == local_player)
-		//	continue;
+		if (entity == local_player)
+			continue;
 
 		if (s_sleepercheck && entity->sleeping)
 			continue;
