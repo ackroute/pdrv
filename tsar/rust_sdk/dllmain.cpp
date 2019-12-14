@@ -186,7 +186,9 @@ void render_esp()
 		NULL_CHECK(entity->model->head_bone_transform);
 		NULL_CHECK(entity->model->transforms);
 		NULL_CHECK(entity->model->transforms->head);
+		NULL_CHECK(entity->model->transforms->head->transform);
 		NULL_CHECK(entity->model->transforms->neck);
+		NULL_CHECK(entity->model->transforms->neck->transform);
 		NULL_CHECK(camera.load());
 
 		if (entity == local_player)
@@ -252,6 +254,7 @@ void render_esp()
 			NULL_CHECK(local_player->model);
 			NULL_CHECK(local_player->model->transforms);
 			NULL_CHECK(local_player->model->transforms->head);
+			NULL_CHECK(local_player->model->transforms->head->transform);
 			
 			const auto local_head = utils::mono::transform::get_position(local_player->model->transforms->head);
 			auto anglecalc = utils::math::calculate_angle(local_head, entity_head);
@@ -272,12 +275,14 @@ void render_esp()
 		NULL_CHECK_RET(local_player->model);
 		NULL_CHECK_RET(local_player->model->transforms);
 		NULL_CHECK_RET(local_player->model->transforms->head);
+		NULL_CHECK_RET(local_player->model->transforms->head->transform);
 		
 		// entity->model->transforms->head;
 		NULL_CHECK_RET(aiment);
 		NULL_CHECK_RET(aiment->model);
 		NULL_CHECK_RET(aiment->model->transforms);
 		NULL_CHECK_RET(aiment->model->transforms->head);
+		NULL_CHECK_RET(aiment->model->transforms->head->transform);
 
 		const auto local_head = utils::mono::transform::get_position(local_player->model->transforms->head);
 		const auto entity_head = utils::mono::transform::get_position(utils::game::get_head_transform(aiment));

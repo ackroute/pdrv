@@ -131,14 +131,14 @@ namespace utils
 		{
 			geo::vec3_t get_position( void* transform )
 			{
-				if ( !transform || (uint64_t)transform < 0x1000)
+				if ((uint64_t)transform < 0x1000)
 					return {};
 
 				geo::vec3_t position{};
 		
 				static const auto get_position_injected = reinterpret_cast< uint64_t( __fastcall* )( void*, geo::vec3_t& ) >( std::uintptr_t( GetModuleHandleA( "UnityPlayer.dll" ) ) + 0x9276a0 );
 				
-				if (!get_position_injected || (uint64_t)get_position_injected == 0x9276a0)
+				if ((uint64_t)get_position_injected < 0x989680)
 					return {};
 				
 				get_position_injected( transform, position );
