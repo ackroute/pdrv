@@ -2,6 +2,10 @@
 	(c) 2019 Samuel Tulach - All rights reserved
 	Based on https://github.com/stellacaller/rust_internal_sdk
 
+	I am using ReadProcessMemory and WriteProcessMemory because
+	managing all unity object pointer that are getting destroyed
+	every fking 5 seconds is not possible.
+
 	TODO:
 	- World to screen and overlay check resolution
 	- Hijack threads instead of creating them (check 
@@ -24,13 +28,15 @@
 #include <mutex>
 #include <vector>
 #include <map>
-#include "utils.hpp"
 #include "xor.h"
+#include "memory.h"
+#include "utils.hpp"
 #include "globals.h"
 #include "module.h"
 #include "settings.h"
 
-#define TEST_BUILD true
+#define TEST_BUILD false
+#define TARGET_THREAD 6
 
 int width = 1920;
 int height = 1080;
@@ -167,6 +173,11 @@ void render_static()
 		std::string entityl = "LocalPlayer: " + std::string(numberl);
 		DrawString(entityl.c_str(), 10, 10 + (17 * 6), 240, 0, 0, pFont);
 		free(numberl);
+
+		char* numberv = ToChar(VERSION);
+		std::string entityv = "Version: " + std::string(numberv);
+		DrawString(entityv.c_str(), 10, 10 + (17 * 7), 240, 0, 0, pFont);
+		free(numberv);
 	}
 }
 
@@ -719,6 +730,12 @@ void HijackThread(DWORD64 func, int id)
 void __stdcall main_thread()
 {	
 	printf(xorstr_("[+] Main thread started\n"));
+
+	bool handleo = open();
+	if (!handleo) 
+	{
+		printf("[-] Failed to open process handle");
+	}
 	
 	const auto base_networkable_address = utils::memory::find_signature("GameAssembly.dll", "48 8b 05 ? ? ? ? 48 8b 88 ? ? ? ? 48 8b 09 48 85 c9 74 ? 45 33 c0 8b" );
 
@@ -793,8 +810,8 @@ void __stdcall Init()
 	printf(xorstr_("\tCopyright (c) xcheats.cc - All rights reserved\n\n"));
 
 	printf(xorstr_("[>] Hijacking threads...\n"));
-	HijackThread((DWORD64)main_thread, 5);
-	HijackThread((DWORD64)RunOverlay, 6);
+	HijackThread((DWORD64)main_thread, TARGET_THREAD);
+	HijackThread((DWORD64)RunOverlay, TARGET_THREAD + 1);
 }
 
 bool __stdcall DllMain( HMODULE module, std::uint32_t call_reason, void* )

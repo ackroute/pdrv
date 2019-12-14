@@ -23,7 +23,7 @@ namespace utils
 {
 	namespace memory
 	{		
-		template <typename t> t read( std::uintptr_t const address )
+		/*template <typename t> t read( std::uintptr_t const address )
 		{
 			return *reinterpret_cast< t* >( address );
 		}
@@ -31,7 +31,7 @@ namespace utils
 		template <typename t> void write( std::uintptr_t const address, t data )
 		{
 			*reinterpret_cast< t* >( address ) = data;
-		}
+		}*/
 
 		template <typename t, std::size_t n> t read_array( std::uintptr_t const address, std::array<std::uintptr_t, n>& offsets )
 		{
@@ -179,11 +179,12 @@ namespace utils
 	}
 	namespace render
 	{
-		bool world_to_screen( base_camera* camera, geo::vec3_t& world, geo::vec2_t* screen )
+		bool world_to_screen( base_camera* camerar, geo::vec3_t& world, geo::vec2_t* screen )
 		{
-			NULL_CHECK_RET(camera) false;
+			NULL_CHECK_RET(camerar) false;
 			
-			const auto matrix = camera->view_matrix.transpose( );
+			base_camera camera = read<base_camera>((uint64_t)camerar);
+			const auto matrix = camera.view_matrix.transpose( );
 
 			const geo::vec3_t translation = { matrix[ 3 ][ 0 ], matrix[ 3 ][ 1 ], matrix[ 3 ][ 2 ] };
 			const geo::vec3_t up = { matrix[ 1 ][ 0 ], matrix[ 1 ][ 1 ], matrix[ 1 ][ 2 ] };

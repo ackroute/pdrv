@@ -31,7 +31,8 @@
 #include "XorCompileTime.hpp"
 #include <string>
 
-#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\pdrv\\tsar\\x64\\Release\\tsur.dll"
+//#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\pdrv\\tsar\\x64\\Release\\tsur.dll"
+#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\pdrv\\tsar\\x64\\Debug\\tsur_debug.dll"
 //#define TARGET_DLL_ADDRESS L"tsur.dll"
 #define TARGET_PROCESS L"RustClient.exe"
 #define TARGET_THREAD 3
