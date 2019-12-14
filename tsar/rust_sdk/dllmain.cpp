@@ -30,7 +30,7 @@
 #include "module.h"
 #include "settings.h"
 
-#define TEST_BUILD true
+#define TEST_BUILD false
 
 int width = 1920;
 int height = 1080;
@@ -658,9 +658,16 @@ void __stdcall main_thread()
 	
 	while ( true )
 	{
-		std::lock_guard guard( entity_mutex );
+		//std::lock_guard guard( entity_mutex );
 
-		for ( const auto& entity : entities )
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+		if (entities.empty())
+			continue;
+
+		local_player = entities.front();
+
+		/*for ( const auto& entity : entities )
 		{
 			if ( !entity )
 				continue;
@@ -671,9 +678,7 @@ void __stdcall main_thread()
 			{
 				local_player = entity;
 			}
-		}
-
-		std::this_thread::sleep_for( std::chrono::milliseconds( 50 ) );
+		}*/
 	}
 
 	/*should_exit = true;
