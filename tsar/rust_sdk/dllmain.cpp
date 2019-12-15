@@ -283,16 +283,16 @@ void render_esp()
 
 		base_player entity = read<base_player>((uint64_t)entityp);
 
-		/*NULL_CHECK(entity->display_name);
-		NULL_CHECK(entity->player_model);
-		NULL_CHECK(entity->model);
-		NULL_CHECK(entity->model->head_bone_transform);
-		NULL_CHECK(entity->model->transforms);
-		NULL_CHECK(entity->model->transforms->head);
-		NULL_CHECK(entity->model->transforms->head->transform);
-		NULL_CHECK(entity->model->transforms->neck);
-		NULL_CHECK(entity->model->transforms->neck->transform);
-		NULL_CHECK(camera.load());*/
+		NULL_CHECK(entityp->display_name);
+		NULL_CHECK(entityp->player_model);
+		NULL_CHECK(entityp->model);
+		NULL_CHECK(entityp->model->head_bone_transform);
+		NULL_CHECK(entityp->model->transforms);
+		NULL_CHECK(entityp->model->transforms->head);
+		NULL_CHECK(entityp->model->transforms->head->transform);
+		NULL_CHECK(entityp->model->transforms->neck);
+		NULL_CHECK(entityp->model->transforms->neck->transform);
+		NULL_CHECK(camera.load());
 
 		if (s_sleepercheck && entity.sleeping)
 			continue;
@@ -399,8 +399,12 @@ void render_esp()
 		
 		auto anglecalc = utils::math::calculate_angle(local_head, entity_head);
 
+		// check angles
+		if (abs(anglecalc.x) <= 360.0f && abs(anglecalc.y) <= 360.0f && abs(anglecalc.z) <= 360.0f) 
+		{
+			write<geo::vec3_t>((uint64_t)&llocal_player.input->body_angles, anglecalc);
+		}
 		//local_player->input->body_angles = anglecalc;
-		write<geo::vec3_t>((uint64_t)&llocal_player.input->body_angles, anglecalc);
 	}
 }
 
@@ -497,6 +501,13 @@ void __stdcall RunOverlay()
 
 	initD3D(hWnd);
 
+	if (!TEST_BUILD)
+	{
+		printf(xorstr_("[>] Hiding console window...\n"));
+		ShowWindow(GetConsoleWindow(), SW_HIDE);
+		printf(xorstr_("[+] Console window hidden\n"));
+	}
+
 	MSG msg;
 	::SetWindowPos(FindWindow(GAME_WINDOW_CLASS, GAME_WINDOW), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 	while (!should_exit)
@@ -541,14 +552,18 @@ void __stdcall entity_loop_thread(void* base_networkable)
 		if (!unk1)
 			continue;
 
-		const auto client_entities = *reinterpret_cast<entity_realm**>(unk1);
+		//const auto client_entities = *reinterpret_cast<entity_realm**>(unk1);
+		const entity_realm* client_entities = read<entity_realm*>((uint64_t)unk1);
 
 		if (!client_entities)
 			continue;
 
-		const auto list = client_entities->list->values;
+		entity_realm er = read<entity_realm>((uint64_t)client_entities);
+		dictionary dic = read<dictionary>((uint64_t)er.list);
+		//const auto list = client_entities->list->values;
+		const auto listp = dic.values;
 
-		if (!list)
+		if (!listp)
 			continue;
 
 		entity_mutex.lock();
@@ -558,9 +573,10 @@ void __stdcall entity_loop_thread(void* base_networkable)
 
 		entity_mutex.unlock();
 
-		for (auto i = 0u; i < list->size; i++)
+		buffer_list bl = read<buffer_list>((uint64_t)listp);
+		for (auto i = 0u; i < bl.size; i++)
 		{
-			const auto element = read<void**>(std::uintptr_t(list->buffer) + (0x20 + (i * 8)));
+			const auto element = read<void**>(std::uintptr_t(bl.buffer) + (0x20 + (i * 8)));
 
 			if (!element || std::strstr(utils::mono::get_class_name(element), xorstr_("BasePlayer")) == nullptr)
 				continue;
@@ -575,12 +591,14 @@ void __stdcall entity_loop_thread(void* base_networkable)
 			if (!object)
 				continue;
 
-			const auto object_1 = *reinterpret_cast<game_object**>(std::uintptr_t(object) + 0x30);
+			//const auto object_1 = *reinterpret_cast<game_object**>(std::uintptr_t(object) + 0x30);
+			const game_object* gmp = read<game_object*>(std::uintptr_t(object) + 0x30);
+			game_object gm = read<game_object>((uint64_t)gmp);
 
-			if (!object_1)
-				continue;
+			//if (!object_1)
+			//	continue;
 
-			unk2 u2 = read<unk2>((uint64_t)object_1->unk);
+			unk2 u2 = read<unk2>((uint64_t)gm.unk);
 			base_player player = read<base_player>((uint64_t)u2.player);
 			//const auto player = object_1->unk->player;
 
@@ -600,15 +618,18 @@ void __stdcall camera_loop_thread( void* game_object_manager )
 {
 	while ( !should_exit )
 	{
-		const auto last_object = *reinterpret_cast< unk1** >( game_object_manager );
-		const auto first_object = *reinterpret_cast< unk1** >( std::uintptr_t( game_object_manager ) + 0x8 );
+		//const auto last_object = *reinterpret_cast< unk1** >( game_object_manager );
+		unk1* last_objectp = read<unk1*>((uint64_t)game_object_manager);
+		unk1 last_object = read<unk1>((uint64_t)last_objectp);
+		//const auto first_object = *reinterpret_cast< unk1** >( std::uintptr_t( game_object_manager ) + 0x8 );
+		unk1* first_objectp = read<unk1*>(std::uintptr_t(game_object_manager) + 0x8);
+		unk1 first_object = read<unk1>((uint64_t)first_objectp);
 
-		for ( auto object = first_object; object != last_object; object = object->next )
+		for ( auto object = first_objectp; object != last_objectp; object = object->next )
 		{
-			NULL_CHECK(object);
-			NULL_CHECK(object->object);
-
-			if ( object->object->tag == 5 )
+			unk1 objectl = read<unk1>((uint64_t)object);
+			mono_object mo = read<mono_object>((uint64_t)objectl.object);
+			if (mo.tag == 5 )
 			{
 				camera.store( reinterpret_cast< base_camera* >( object->object->object->unk ) );
 				break;
@@ -778,8 +799,8 @@ void __stdcall main_thread()
 
 	std::printf(xorstr_("[+] GameObjectManager: 0x%llx\n"), ( game_object_manager - std::uintptr_t( GetModuleHandleA( "UnityPlayer.dll" ) ) ) );
 
-	std::thread etc_iteration( &camera_loop_thread, *reinterpret_cast< void** >( game_object_manager ) );
-	
+	std::thread etc_iteration( &camera_loop_thread, *reinterpret_cast< void** >( game_object_manager ) );	
+
 	while ( true )
 	{
 		//std::lock_guard guard( entity_mutex );
