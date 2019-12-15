@@ -11,13 +11,13 @@
 	- Hijack threads instead of creating them (check 
 	if not in the same thread!) - done
 	- Change font - done
-	- Entity loop only on some frames (every 60th frame for example)
+	- Entity loop only on some frames (every 60th frame for example) - done
 */
 
 #define NULL_CHECK_RET(x) if ((uint64_t)x < 0x1000) return
 #define NULL_CHECK(x) if ((uint64_t)x < 0x1000) continue
 
-#define TEST_BUILD false
+#define TEST_BUILD true
 #define TEST_LOGS false
 
 #include <Windows.h>
@@ -412,6 +412,8 @@ void render_esp()
 	}
 }
 
+static int frame = 0;
+
 void render_loop_e() 
 {
 	const auto unk1l = read<void**>(std::uintptr_t(base_networkable) + 0xb8);
@@ -512,8 +514,13 @@ void render()
 	d3ddev->BeginScene();
 
 	__try {
-		render_loop_e();
-		render_loop_c();
+		frame++;
+		if (frame > 60) 
+		{
+			render_loop_e();
+			render_loop_c();
+			frame = 0;
+		}
 		render_static();
 		render_menu(d3ddev);
 		render_esp();

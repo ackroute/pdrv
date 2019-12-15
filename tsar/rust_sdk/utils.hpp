@@ -114,7 +114,7 @@ namespace utils
 	{
 		char* get_class_name( void* const networkable_class )
 		{
-			return *reinterpret_cast< char** >( *reinterpret_cast< std::uintptr_t* >( networkable_class ) + 0x10 );
+			return read<char*>(read<std::uintptr_t>((uint64_t)networkable_class) + 0x10);
 		}
 
 		std::wstring to_wstring( mono_string* str )
