@@ -11,12 +11,13 @@
 	- Hijack threads instead of creating them (check 
 	if not in the same thread!) - done
 	- Change font - done
+	- Entity loop only on some frames (every 60th frame for example)
 */
 
 #define NULL_CHECK_RET(x) if ((uint64_t)x < 0x1000) return
 #define NULL_CHECK(x) if ((uint64_t)x < 0x1000) continue
 
-#define TEST_BUILD true
+#define TEST_BUILD false
 #define TEST_LOGS false
 
 #include <Windows.h>
