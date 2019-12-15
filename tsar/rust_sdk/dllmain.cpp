@@ -17,7 +17,7 @@
 #define NULL_CHECK_RET(x) if ((uint64_t)x < 0x1000) return
 #define NULL_CHECK(x) if ((uint64_t)x < 0x1000) continue
 
-#define TEST_BUILD true
+#define TEST_BUILD false
 #define TEST_LOGS false
 
 #include <Windows.h>
@@ -286,15 +286,6 @@ void render_esp()
 
 		base_player entity = read<base_player>((uint64_t)entityp);
 
-		NULL_CHECK(entityp->display_name);
-		NULL_CHECK(entityp->player_model);
-		NULL_CHECK(entityp->model);
-		NULL_CHECK(entityp->model->head_bone_transform);
-		NULL_CHECK(entityp->model->transforms);
-		NULL_CHECK(entityp->model->transforms->head);
-		NULL_CHECK(entityp->model->transforms->head->transform);
-		NULL_CHECK(entityp->model->transforms->neck);
-		NULL_CHECK(entityp->model->transforms->neck->transform);
 		NULL_CHECK(camera.load());
 
 		if (s_sleepercheck && entity.sleeping)
@@ -323,7 +314,8 @@ void render_esp()
 			std::string finaltext = "";
 			if (s_name)
 			{
-				std::string name = utils::mono::to_string(entity.display_name);
+				mono_string str = read<mono_string>((uint64_t)entity.display_name);
+				std::string name = utils::mono::to_string(&str);
 				finaltext += name + "\n";
 			}
 			if (s_health)
@@ -352,13 +344,6 @@ void render_esp()
 
 		if (s_aim)
 		{
-			NULL_CHECK(local_player);
-			NULL_CHECK(local_player->input);
-			NULL_CHECK(local_player->model);
-			NULL_CHECK(local_player->model->transforms);
-			NULL_CHECK(local_player->model->transforms->head);
-			NULL_CHECK(local_player->model->transforms->head->transform);
-
 			base_player llocal_player = read<base_player>((uint64_t)local_player);
 			player_input lplayer_input = read<player_input>((uint64_t)llocal_player.input);
 			
@@ -377,20 +362,6 @@ void render_esp()
 
 	if (s_aim && (GetAsyncKeyState(AIM_KEY) & 0x8000))
 	{
-		NULL_CHECK_RET(local_player);
-		NULL_CHECK_RET(local_player->input);
-		NULL_CHECK_RET(local_player->model);
-		NULL_CHECK_RET(local_player->model->transforms);
-		NULL_CHECK_RET(local_player->model->transforms->head);
-		NULL_CHECK_RET(local_player->model->transforms->head->transform);
-		
-		// entity->model->transforms->head;
-		NULL_CHECK_RET(aiment);
-		NULL_CHECK_RET(aiment->model);
-		NULL_CHECK_RET(aiment->model->transforms);
-		NULL_CHECK_RET(aiment->model->transforms->head);
-		NULL_CHECK_RET(aiment->model->transforms->head->transform);
-
 		base_player llocal_player = read<base_player>((uint64_t)local_player);
 		base_player aaim_ent = read<base_player>((uint64_t)aiment);
 
@@ -515,10 +486,13 @@ void render()
 
 	__try {
 		frame++;
-		if (frame > 60) 
+		if (frame == 60) 
+		{
+			render_loop_c();
+		}
+		if (frame > 120)
 		{
 			render_loop_e();
-			render_loop_c();
 			frame = 0;
 		}
 		render_static();

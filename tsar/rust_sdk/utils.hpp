@@ -117,9 +117,10 @@ namespace utils
 			return read<char*>(read<std::uintptr_t>((uint64_t)networkable_class) + 0x10);
 		}
 
-		std::wstring to_wstring( mono_string* str )
+		std::wstring to_wstring( mono_string* strp )
 		{
-			return std::wstring( &str->buffer, str->size );
+			mono_string str = read<mono_string>((uint64_t)strp);
+			return std::wstring( str.buffer, str.size );
 		}
 
 		std::string to_string( mono_string* str )
@@ -197,9 +198,7 @@ namespace utils
 	namespace render
 	{
 		bool world_to_screen( base_camera* camerar, geo::vec3_t& world, geo::vec2_t* screen )
-		{
-			NULL_CHECK_RET(camerar) false;
-			
+		{			
 			base_camera camera = read<base_camera>((uint64_t)camerar);
 			const auto matrix = camera.view_matrix.transpose( );
 

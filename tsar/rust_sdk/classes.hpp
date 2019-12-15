@@ -16,7 +16,7 @@ struct mono_string
 {
 	char pad_0[ 0x10 ];
 	std::uint32_t size;
-	wchar_t buffer;
+	wchar_t buffer[32];
 };
 
 struct item_container
