@@ -162,7 +162,7 @@ void init_menu()
 	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Box"), s_box, true));
 	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Name"), s_name, true));
 	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Health"), s_health, true));
-	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Distance"), s_distance, true));
+	//esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Distance"), s_distance, true));
 	esp->add_sub_item(std::make_shared<D3DMenuBoolItem>(xorstr_("Sleeper Check"), s_sleepercheck, true));
 
 	auto aim = std::make_shared<D3DMenuSubFolderItem>(xorstr_("Aim"));

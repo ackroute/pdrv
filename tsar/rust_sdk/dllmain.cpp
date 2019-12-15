@@ -3,8 +3,8 @@
 	Based on https://github.com/stellacaller/rust_internal_sdk
 
 	I am using ReadProcessMemory and WriteProcessMemory because
-	managing all unity object pointer that are getting destroyed
-	every fking 5 seconds is not possible.
+	managing all unity object pointers that are getting destroyed
+	every fking 5 seconds is not possible. Sorry.
 
 	TODO:
 	- World to screen and overlay check resolution
@@ -15,6 +15,10 @@
 
 #define NULL_CHECK_RET(x) if ((uint64_t)x < 0x1000) return
 #define NULL_CHECK(x) if ((uint64_t)x < 0x1000) continue
+
+#define TEST_BUILD false
+#define TEST_LOGS false
+#define TARGET_THREAD 6
 
 #include <Windows.h>
 #include <d3d9.h>
@@ -34,9 +38,6 @@
 #include "globals.h"
 #include "module.h"
 #include "settings.h"
-
-#define TEST_BUILD false
-#define TARGET_THREAD 6
 
 int width = 1920;
 int height = 1080;
@@ -188,7 +189,7 @@ geo::vec3_t get_position(void* transforms)
 	auto transform_internal = read<uint64_t>(transform + 0x10);
 	if (!transform_internal)
 	{
-		printf(xorstr_("[-] Failed to get internal transform\n"));
+		if (TEST_LOGS) printf(xorstr_("[-] Failed to get internal transform\n"));
 		return {};
 	}
 
@@ -196,21 +197,21 @@ geo::vec3_t get_position(void* transforms)
 	auto index = read<uint32_t>(transform_internal + 0x38 + sizeof(uint64_t));
 	if (!some_ptr)
 	{
-		printf(xorstr_("[-] Failed to get some ptr\n"));
+		if (TEST_LOGS) printf(xorstr_("[-] Failed to get some ptr\n"));
 		return {};
 	}
 
 	auto relation_array = read<uint64_t>(some_ptr + 0x18);
 	if (!relation_array)
 	{
-		printf(xorstr_("[-] Failed to read relation array\n"));
+		if (TEST_LOGS) printf(xorstr_("[-] Failed to read relation array\n"));
 		return {};
 	}
 
 	auto dependency_index_array = read<uint64_t>(some_ptr + 0x20);
 	if (!dependency_index_array)
 	{
-		printf(xorstr_("[-] Failed to read depency index arr\n"));
+		if (TEST_LOGS) printf(xorstr_("[-] Failed to read depency index arr\n"));
 		return {};
 	}
 
@@ -264,7 +265,7 @@ geo::vec3_t get_position(void* transforms)
 		dependency_index = read<int32_t>(dependency_index_array + dependency_index * 4);
 	}
 
-	return *(geo::vec3_t*)(&temp_main);
+	return read<geo::vec3_t>((uint64_t)&temp_main);
 }
 
 void render_esp() 
@@ -272,12 +273,17 @@ void render_esp()
 	base_player* aiment = nullptr;
 	int aimfov = 999;
 
-	for (const auto& entity : entities)
+	for (const auto& entityp : entities)
 	{
-		if (!entity)
+		if (!entityp)
 			continue;
 
-		NULL_CHECK(entity->display_name);
+		if (entityp == local_player)
+			continue;
+
+		base_player entity = read<base_player>((uint64_t)entityp);
+
+		/*NULL_CHECK(entity->display_name);
 		NULL_CHECK(entity->player_model);
 		NULL_CHECK(entity->model);
 		NULL_CHECK(entity->model->head_bone_transform);
@@ -286,22 +292,17 @@ void render_esp()
 		NULL_CHECK(entity->model->transforms->head->transform);
 		NULL_CHECK(entity->model->transforms->neck);
 		NULL_CHECK(entity->model->transforms->neck->transform);
-		NULL_CHECK(camera.load());
+		NULL_CHECK(camera.load());*/
 
-		if (entity == local_player)
+		if (s_sleepercheck && entity.sleeping)
 			continue;
 
-		if (s_sleepercheck && entity->sleeping)
-			continue;
-
-		unity_transform head_tranform = *entity->model->transforms->head;
-		auto entity_head = get_position(&head_tranform); /* entity->model->transforms->head NOT head->transform */
+		auto entity_head = get_position(utils::game::get_head_transform(&entity)); /* entity->model->transforms->head NOT head->transform */
 
 		if (entity_head.empty())
 			continue;
 
-		unity_transform neck_tranform = *entity->model->transforms->neck;
-		auto entity_neck = get_position(&neck_tranform);
+		auto entity_neck = get_position(utils::game::get_neck_transform(&entity));
 		
 		if (entity_neck.empty())
 			continue;
@@ -314,12 +315,12 @@ void render_esp()
 		{
 			// todo: distance
 
-			int health = (int)entity->health;
+			int health = (int)entity.health;
 
 			std::string finaltext = "";
 			if (s_name)
 			{
-				std::string name = utils::mono::to_string(entity->display_name);
+				std::string name = utils::mono::to_string(entity.display_name);
 				finaltext += name + "\n";
 			}
 			if (s_health)
@@ -354,17 +355,19 @@ void render_esp()
 			NULL_CHECK(local_player->model->transforms);
 			NULL_CHECK(local_player->model->transforms->head);
 			NULL_CHECK(local_player->model->transforms->head->transform);
+
+			base_player llocal_player = read<base_player>((uint64_t)local_player);
+			player_input lplayer_input = read<player_input>((uint64_t)llocal_player.input);
 			
-			unity_transform local_tranform = *local_player->model->transforms->head;
-			const auto local_head = get_position(&local_tranform);
+			const auto local_head = get_position(utils::game::get_head_transform(&llocal_player));
 			
 			auto anglecalc = utils::math::calculate_angle(local_head, entity_head);
-			const auto calculated_fov = utils::math::calculate_fov(local_player->input->body_angles, anglecalc);
+			const auto calculated_fov = utils::math::calculate_fov(lplayer_input.body_angles, anglecalc);
 
 			if (calculated_fov < aimfov)
 			{
 				aimfov = calculated_fov;
-				aiment = entity;
+				aiment = entityp;
 			}
 		}
 	}
@@ -385,13 +388,19 @@ void render_esp()
 		NULL_CHECK_RET(aiment->model->transforms->head);
 		NULL_CHECK_RET(aiment->model->transforms->head->transform);
 
-		unity_transform local_tranform = *local_player->model->transforms->head;
-		const auto local_head = get_position(&local_tranform);
-		unity_transform head_tranform = *aiment->model->transforms->head;
-		const auto entity_head = get_position(&head_tranform);
+		base_player llocal_player = read<base_player>((uint64_t)local_player);
+		base_player aaim_ent = read<base_player>((uint64_t)aiment);
+
+		//unity_transform local_tranform = *local_player->model->transforms->head;
+		const auto local_head = get_position(utils::game::get_head_transform(&llocal_player));
+		
+		//unity_transform head_tranform = *aiment->model->transforms->head;
+		const auto entity_head = get_position(utils::game::get_head_transform(&aaim_ent));
+		
 		auto anglecalc = utils::math::calculate_angle(local_head, entity_head);
 
-		local_player->input->body_angles = anglecalc;
+		//local_player->input->body_angles = anglecalc;
+		write<geo::vec3_t>((uint64_t)&llocal_player.input->body_angles, anglecalc);
 	}
 }
 
@@ -526,7 +535,8 @@ void __stdcall entity_loop_thread(void* base_networkable)
 {
 	while (!should_exit)
 	{
-		const auto unk1 = *reinterpret_cast<void**>(std::uintptr_t(base_networkable) + 0xb8);
+		//const auto unk1 = *reinterpret_cast<void**>(std::uintptr_t(base_networkable) + 0xb8);
+		const auto unk1 = read<void**>(std::uintptr_t(base_networkable) + 0xb8);
 
 		if (!unk1)
 			continue;
@@ -550,17 +560,17 @@ void __stdcall entity_loop_thread(void* base_networkable)
 
 		for (auto i = 0u; i < list->size; i++)
 		{
-			const auto element = *reinterpret_cast<void**>(std::uintptr_t(list->buffer) + (0x20 + (i * 8)));
+			const auto element = read<void**>(std::uintptr_t(list->buffer) + (0x20 + (i * 8)));
 
 			if (!element || std::strstr(utils::mono::get_class_name(element), xorstr_("BasePlayer")) == nullptr)
 				continue;
 
-			const auto base_mono_object = *reinterpret_cast<void**>(std::uintptr_t(element) + 0x10);
+			const auto base_mono_object = read<void**>(std::uintptr_t(element) + 0x10);
 
 			if (!base_mono_object)
 				continue;
 
-			const auto object = *reinterpret_cast<void**>(std::uintptr_t(base_mono_object) + 0x30);
+			const auto object = read<void**>(std::uintptr_t(base_mono_object) + 0x30);
 
 			if (!object)
 				continue;
@@ -570,14 +580,16 @@ void __stdcall entity_loop_thread(void* base_networkable)
 			if (!object_1)
 				continue;
 
-			const auto player = object_1->unk->player;
+			unk2 u2 = read<unk2>((uint64_t)object_1->unk);
+			base_player player = read<base_player>((uint64_t)u2.player);
+			//const auto player = object_1->unk->player;
 
 			std::lock_guard guard(entity_mutex);
 
-			if (!player || player->health <= 0.8f || std::find(entities.begin(), entities.end(), player) != entities.end())
+			if (player.health <= 0.8f || std::find(entities.begin(), entities.end(), u2.player) != entities.end())
 				continue;
 
-			entities.push_back(player);
+			entities.push_back(u2.player);
 		}
 
 		std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -593,6 +605,9 @@ void __stdcall camera_loop_thread( void* game_object_manager )
 
 		for ( auto object = first_object; object != last_object; object = object->next )
 		{
+			NULL_CHECK(object);
+			NULL_CHECK(object->object);
+
 			if ( object->object->tag == 5 )
 			{
 				camera.store( reinterpret_cast< base_camera* >( object->object->object->unk ) );

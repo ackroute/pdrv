@@ -223,6 +223,12 @@ namespace utils
 			return mt.head;
 		}
 
+		unity_transform* get_neck_transform(base_player* entity)
+		{
+			model_transforms mt = get_model_tranforms(entity);
+			return mt.neck;
+		}
+
 		bool is_local_player(player_model* model) 
 		{
 			return read<bool>((uint64_t)model + PLAYERMODEL_LOCAL);

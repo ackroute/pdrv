@@ -34,14 +34,14 @@ inline T read(uint64_t addr)
 {
 	if (prochandle == INVALID_HANDLE_VALUE) 
 	{
-		printf(xorstr_("[-] Invalid handle value\n"));
+		if (TEST_LOGS) printf(xorstr_("[-] Invalid handle value\n"));
 	}
 
 	T val = T();
 	bool status = ReadProcessMemory(prochandle, (LPCVOID)addr, &val, sizeof(T), NULL);
 	if (!status) 
 	{
-		printf(xorstr_("[-] ReadProcessMemory failed with code %d\n"), GetLastError());
+		if (TEST_LOGS) printf(xorstr_("[-] ReadProcessMemory failed with code %d\n"), GetLastError());
 	}
 
 	return val;
@@ -66,6 +66,6 @@ inline void write(uint64_t addr, T value)
 	bool status = WriteProcessMemory(prochandle, (LPVOID)addr, &value, sizeof(T), NULL);
 	if (!status)
 	{
-		printf(xorstr_("[-] WriteProcessMemory failed with code %d\n"), GetLastError());
+		if (TEST_LOGS) printf(xorstr_("[-] WriteProcessMemory failed with code %d\n"), GetLastError());
 	}
 }
