@@ -402,7 +402,8 @@ void render_esp()
 		// check angles
 		if (abs(anglecalc.x) <= 360.0f && abs(anglecalc.y) <= 360.0f && abs(anglecalc.z) <= 360.0f) 
 		{
-			write<geo::vec3_t>((uint64_t)&llocal_player.input->body_angles, anglecalc);
+			//write<geo::vec3_t>((uint64_t)&llocal_player.input->body_angles, anglecalc);
+			write<geo::vec3_t>((uint64_t)&llocal_player.input + PLAYERINPUT_ANGLES, anglecalc);
 		}
 		//local_player->input->body_angles = anglecalc;
 	}
@@ -625,13 +626,21 @@ void __stdcall camera_loop_thread( void* game_object_manager )
 		unk1* first_objectp = read<unk1*>(std::uintptr_t(game_object_manager) + 0x8);
 		unk1 first_object = read<unk1>((uint64_t)first_objectp);
 
+		if (!last_objectp)
+			continue;
+
+		if (!first_objectp)
+			continue;
+
 		for ( auto object = first_objectp; object != last_objectp; object = object->next )
 		{
 			unk1 objectl = read<unk1>((uint64_t)object);
 			mono_object mo = read<mono_object>((uint64_t)objectl.object);
 			if (mo.tag == 5 )
 			{
-				camera.store( reinterpret_cast< base_camera* >(mo.object->unk ) );
+				game_object go = read<game_object>((uint64_t)mo.object);
+				//unk2 unk = read<unk2>((uint64_t)go.unk);
+				camera.store( reinterpret_cast<base_camera*>(go.unk));
 				break;
 			}
 		}
