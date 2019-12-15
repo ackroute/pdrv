@@ -16,7 +16,7 @@
 #define NULL_CHECK_RET(x) if ((uint64_t)x < 0x1000) return
 #define NULL_CHECK(x) if ((uint64_t)x < 0x1000) continue
 
-#define TEST_BUILD false
+#define TEST_BUILD true
 #define TEST_LOGS false
 #define TARGET_THREAD 6
 
@@ -278,7 +278,7 @@ void render_esp()
 		if (!entityp)
 			continue;
 
-		if (entityp == local_player)
+		if (entityp == local_player && !TEST_BUILD)
 			continue;
 
 		base_player entity = read<base_player>((uint64_t)entityp);
