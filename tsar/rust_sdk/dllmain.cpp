@@ -16,9 +16,9 @@
 #define NULL_CHECK_RET(x) if ((uint64_t)x < 0x1000) return
 #define NULL_CHECK(x) if ((uint64_t)x < 0x1000) continue
 
-#define TEST_BUILD true
+#define TEST_BUILD false
 #define TEST_LOGS false
-#define TARGET_THREAD 6
+#define TARGET_THREAD 10
 
 #include <Windows.h>
 #include <d3d9.h>
@@ -631,7 +631,7 @@ void __stdcall camera_loop_thread( void* game_object_manager )
 			mono_object mo = read<mono_object>((uint64_t)objectl.object);
 			if (mo.tag == 5 )
 			{
-				camera.store( reinterpret_cast< base_camera* >( object->object->object->unk ) );
+				camera.store( reinterpret_cast< base_camera* >(mo.object->unk ) );
 				break;
 			}
 		}
