@@ -16,9 +16,8 @@
 #define NULL_CHECK_RET(x) if ((uint64_t)x < 0x1000) return
 #define NULL_CHECK(x) if ((uint64_t)x < 0x1000) continue
 
-#define TEST_BUILD false
+#define TEST_BUILD true
 #define TEST_LOGS false
-#define TARGET_THREAD 10
 
 #include <Windows.h>
 #include <d3d9.h>
@@ -41,6 +40,9 @@
 
 int width = 1920;
 int height = 1080;
+
+void* game_object_manager = 0;
+void* base_networkable = 0;
 
 std::vector<base_player*> entities;
 std::atomic<base_camera*> camera( nullptr );
@@ -403,9 +405,102 @@ void render_esp()
 		if (abs(anglecalc.x) <= 360.0f && abs(anglecalc.y) <= 360.0f && abs(anglecalc.z) <= 360.0f) 
 		{
 			//write<geo::vec3_t>((uint64_t)&llocal_player.input->body_angles, anglecalc);
-			write<geo::vec3_t>((uint64_t)&llocal_player.input + PLAYERINPUT_ANGLES, anglecalc);
+			write<geo::vec3_t>((uint64_t)llocal_player.input + PLAYERINPUT_ANGLES, anglecalc);
 		}
 		//local_player->input->body_angles = anglecalc;
+	}
+}
+
+void render_loop_e() 
+{
+	const auto unk1l = read<void**>(std::uintptr_t(base_networkable) + 0xb8);
+
+	if (!unk1l)
+		return;
+
+	//const auto client_entities = *reinterpret_cast<entity_realm**>(unk1);
+	const entity_realm* client_entities = read<entity_realm*>((uint64_t)unk1l);
+
+	if (!client_entities)
+		return;
+
+	entity_realm er = read<entity_realm>((uint64_t)client_entities);
+	dictionary dic = read<dictionary>((uint64_t)er.list);
+	//const auto list = client_entities->list->values;
+	const auto listp = dic.values;
+
+	if (!listp)
+		return;
+
+	if (entities.size() >= 500)
+		entities.clear();
+
+	buffer_list bl = read<buffer_list>((uint64_t)listp);
+	for (auto i = 0u; i < bl.size; i++)
+	{
+		const auto element = read<void**>(std::uintptr_t(bl.buffer) + (0x20 + (i * 8)));
+
+		if (!element || std::strstr(utils::mono::get_class_name(element), xorstr_("BasePlayer")) == nullptr)
+			continue;
+
+		const auto base_mono_object = read<void**>(std::uintptr_t(element) + 0x10);
+
+		if (!base_mono_object)
+			continue;
+
+		const auto object = read<void**>(std::uintptr_t(base_mono_object) + 0x30);
+
+		if (!object)
+			continue;
+
+		//const auto object_1 = *reinterpret_cast<game_object**>(std::uintptr_t(object) + 0x30);
+		const game_object* gmp = read<game_object*>(std::uintptr_t(object) + 0x30);
+		game_object gm = read<game_object>((uint64_t)gmp);
+
+		//if (!object_1)
+		//	continue;
+
+		unk2 u2 = read<unk2>((uint64_t)gm.unk);
+		base_player player = read<base_player>((uint64_t)u2.player);
+		//const auto player = object_1->unk->player;
+
+		if (player.health <= 0.8f || std::find(entities.begin(), entities.end(), u2.player) != entities.end())
+			continue;
+
+		entities.push_back(u2.player);
+	}
+}
+
+void render_loop_c() 
+{
+	if (entities.empty())
+		return;
+
+	local_player = entities.front();
+	
+	unk1* last_objectp = read<unk1*>((uint64_t)game_object_manager);
+	unk1 last_object = read<unk1>((uint64_t)last_objectp);
+	//const auto first_object = *reinterpret_cast< unk1** >( std::uintptr_t( game_object_manager ) + 0x8 );
+	unk1* first_objectp = read<unk1*>(std::uintptr_t(game_object_manager) + 0x8);
+	unk1 first_object = read<unk1>((uint64_t)first_objectp);
+
+	for (auto object = first_objectp; object != last_objectp; object = object->next)
+	{
+		if (!last_objectp)
+			continue;
+
+		if (!first_objectp)
+			continue;
+
+		unk1 objectl = read<unk1>((uint64_t)object);
+		mono_object mo = read<mono_object>((uint64_t)objectl.object);
+		if (mo.tag == 5)
+		{
+			game_object go = read<game_object>((uint64_t)mo.object);
+			//unk2 unk = read<unk2>((uint64_t)go.unk);
+			camera.store(reinterpret_cast<base_camera*>(go.unk));
+			break;
+		}
 	}
 }
 
@@ -416,6 +511,8 @@ void render()
 	d3ddev->BeginScene();
 
 	__try {
+		render_loop_e();
+		render_loop_c();
 		render_static();
 		render_menu(d3ddev);
 		render_esp();
@@ -543,235 +640,6 @@ void __stdcall RunOverlay()
 	CloseWindow(hWnd);
 }
 
-void __stdcall entity_loop_thread(void* base_networkable)
-{
-	while (!should_exit)
-	{
-		//const auto unk1 = *reinterpret_cast<void**>(std::uintptr_t(base_networkable) + 0xb8);
-		const auto unk1 = read<void**>(std::uintptr_t(base_networkable) + 0xb8);
-
-		if (!unk1)
-			continue;
-
-		//const auto client_entities = *reinterpret_cast<entity_realm**>(unk1);
-		const entity_realm* client_entities = read<entity_realm*>((uint64_t)unk1);
-
-		if (!client_entities)
-			continue;
-
-		entity_realm er = read<entity_realm>((uint64_t)client_entities);
-		dictionary dic = read<dictionary>((uint64_t)er.list);
-		//const auto list = client_entities->list->values;
-		const auto listp = dic.values;
-
-		if (!listp)
-			continue;
-
-		entity_mutex.lock();
-
-		if (entities.size() >= 500)
-			entities.clear();
-
-		entity_mutex.unlock();
-
-		buffer_list bl = read<buffer_list>((uint64_t)listp);
-		for (auto i = 0u; i < bl.size; i++)
-		{
-			const auto element = read<void**>(std::uintptr_t(bl.buffer) + (0x20 + (i * 8)));
-
-			if (!element || std::strstr(utils::mono::get_class_name(element), xorstr_("BasePlayer")) == nullptr)
-				continue;
-
-			const auto base_mono_object = read<void**>(std::uintptr_t(element) + 0x10);
-
-			if (!base_mono_object)
-				continue;
-
-			const auto object = read<void**>(std::uintptr_t(base_mono_object) + 0x30);
-
-			if (!object)
-				continue;
-
-			//const auto object_1 = *reinterpret_cast<game_object**>(std::uintptr_t(object) + 0x30);
-			const game_object* gmp = read<game_object*>(std::uintptr_t(object) + 0x30);
-			game_object gm = read<game_object>((uint64_t)gmp);
-
-			//if (!object_1)
-			//	continue;
-
-			unk2 u2 = read<unk2>((uint64_t)gm.unk);
-			base_player player = read<base_player>((uint64_t)u2.player);
-			//const auto player = object_1->unk->player;
-
-			std::lock_guard guard(entity_mutex);
-
-			if (player.health <= 0.8f || std::find(entities.begin(), entities.end(), u2.player) != entities.end())
-				continue;
-
-			entities.push_back(u2.player);
-		}
-
-		std::this_thread::sleep_for(std::chrono::seconds(10));
-	}
-}
-
-void __stdcall camera_loop_thread( void* game_object_manager )
-{
-	while ( !should_exit )
-	{
-		//const auto last_object = *reinterpret_cast< unk1** >( game_object_manager );
-		unk1* last_objectp = read<unk1*>((uint64_t)game_object_manager);
-		unk1 last_object = read<unk1>((uint64_t)last_objectp);
-		//const auto first_object = *reinterpret_cast< unk1** >( std::uintptr_t( game_object_manager ) + 0x8 );
-		unk1* first_objectp = read<unk1*>(std::uintptr_t(game_object_manager) + 0x8);
-		unk1 first_object = read<unk1>((uint64_t)first_objectp);
-
-		if (!last_objectp)
-			continue;
-
-		if (!first_objectp)
-			continue;
-
-		for ( auto object = first_objectp; object != last_objectp; object = object->next )
-		{
-			unk1 objectl = read<unk1>((uint64_t)object);
-			mono_object mo = read<mono_object>((uint64_t)objectl.object);
-			if (mo.tag == 5 )
-			{
-				game_object go = read<game_object>((uint64_t)mo.object);
-				//unk2 unk = read<unk2>((uint64_t)go.unk);
-				camera.store( reinterpret_cast<base_camera*>(go.unk));
-				break;
-			}
-		}
-
-		std::this_thread::sleep_for( std::chrono::seconds( 20 ) );
-	}
-}
-
-DWORD GetMainThread(DWORD dwProcID)
-{
-	DWORD dwMainThreadID = 0;
-	ULONGLONG ullMinCreateTime = MAXULONGLONG;
-
-	HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-	if (hThreadSnap != INVALID_HANDLE_VALUE) {
-		THREADENTRY32 th32;
-		th32.dwSize = sizeof(THREADENTRY32);
-		BOOL bOK = TRUE;
-		for (bOK = Thread32First(hThreadSnap, &th32); bOK;
-			bOK = Thread32Next(hThreadSnap, &th32)) {
-			if (th32.th32OwnerProcessID == dwProcID) {
-				HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION,
-					TRUE, th32.th32ThreadID);
-				if (hThread) {
-					FILETIME afTimes[4] = { 0 };
-					if (GetThreadTimes(hThread,
-						&afTimes[0], &afTimes[1], &afTimes[2], &afTimes[3])) {
-						ULONGLONG ullTest = (ULONGLONG)(afTimes[0].dwLowDateTime,
-							afTimes[0].dwHighDateTime);
-						if (ullTest && ullTest < ullMinCreateTime) {
-							ullMinCreateTime = ullTest;
-							dwMainThreadID = th32.th32ThreadID;
-						}
-					}
-					CloseHandle(hThread);
-				}
-			}
-		}
-		CloseHandle(hThreadSnap);
-	}
-	return dwMainThreadID;
-}
-
-std::vector<DWORD> threadlist;
-int number = 0;
-void HijackThread(DWORD64 func, int id) 
-{
-	printf(xorstr_("[>] Hijacking thread for func %p...\n"), func);
-
-	THREADENTRY32 te32;
-	THREADENTRY32 tte32;
-	te32.dwSize = sizeof(THREADENTRY32);
-	CONTEXT ctx;
-	ctx.ContextFlags = CONTEXT_FULL;
-
-	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-	Thread32First(hSnap, &te32);
-
-	printf(xorstr_("[+] TH32 handle %p\n"), hSnap);
-	DWORD mainthread = GetMainThread(GetCurrentProcessId());
-	printf(xorstr_("[+] Main thread id %d\n"), mainthread);
-
-	if (threadlist.empty()) 
-	{
-		while (Thread32Next(hSnap, &te32))
-		{
-			if (GetCurrentThreadId() == te32.th32ThreadID)
-			{
-				printf(xorstr_("[-] Thread is current thread\n"));
-				continue;
-			}
-			// Check if the thread was not already hijacked
-			if (std::find(threadlist.begin(), threadlist.end(), te32.th32ThreadID) != threadlist.end())
-			{
-				printf(xorstr_("[-] Thread already hijacked\n"));
-				continue;
-			}
-			if (GetCurrentThreadId() == mainthread)
-			{
-				printf(xorstr_("[-] Skipped main thread\n"));
-				continue;
-			}
-			if (GetCurrentProcessId() == te32.th32OwnerProcessID)
-			{
-				/*if (number == 0)
-				{
-					// We don't want main thread
-					number++;
-					printf(xorstr_("[-] Skipped main thread\n"));
-					continue;
-				}*/
-				threadlist.push_back(te32.th32ThreadID);
-				//printf(xorstr_("[+] Found thread with id %d\n"), te32.th32ThreadID);
-			}
-		}
-		printf(xorstr_("[+] Found %i threads\n"), threadlist.size());
-	}
-	CloseHandle(hSnap);
-
-	int threadpos = id;
-	DWORD threadid = 0;;
-	while (threadid == 0) 
-	{
-		threadid = threadlist[threadlist.size() - threadpos];
-		threadpos++;
-	}
-	printf(xorstr_("[+] Using thread with id %d\n"), threadid);
-
-	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, threadid);
-
-	if (!hThread)
-	{
-		printf(xorstr_("[-] Unable to open target thread handle (%d)\n"), GetLastError());
-	}
-
-	SuspendThread(hThread);
-	GetThreadContext(hThread, &ctx);
-
-	ctx.Rip = (DWORD64)func;
-
-	if (!SetThreadContext(hThread, &ctx))
-	{
-		printf(xorstr_("[-] Unable to set thread context (%d)\n"), GetLastError());
-	}
-
-	ResumeThread(hThread);
-	CloseHandle(hThread);
-
-	printf(xorstr_("[+] Context set\n"));
-}
-
 void __stdcall main_thread()
 {	
 	printf(xorstr_("[+] Main thread started\n"));
@@ -787,53 +655,30 @@ void __stdcall main_thread()
 	if ( !base_networkable_address )
 		return;
 
-	const auto base_networkable = reinterpret_cast<std::uintptr_t>( base_networkable_address + *reinterpret_cast< std::int32_t* >( base_networkable_address + 3 ) + 7 );
+	const auto base_networkablel = reinterpret_cast<std::uintptr_t>( base_networkable_address + *reinterpret_cast< std::int32_t* >( base_networkable_address + 3 ) + 7 );
 
-	if ( !base_networkable )
+	if ( !base_networkablel )
 		return;
 
-	std::printf(xorstr_("[+] BaseNetworkable: 0x%llx\n"), ( base_networkable - std::uintptr_t( GetModuleHandleA( "GameAssembly.dll" ) ) ) );
+	base_networkable = *reinterpret_cast<void**>(base_networkablel);
 
-	std::thread entity_iteration(&entity_loop_thread, *reinterpret_cast<void**>(base_networkable));
+	std::printf(xorstr_("[+] BaseNetworkable: 0x%llx\n"), ( base_networkablel - std::uintptr_t( GetModuleHandleA( "GameAssembly.dll" ) ) ) );
 
 	const auto game_object_manager_address = utils::memory::find_signature( "UnityPlayer.dll", "48 89 05 ? ? ? ? 48 83 c4 38 c3 48 c7 05 ? ? ? ? ? ? ? ? 48 83 c4 38 c3 cc cc cc cc cc 48" );
 
 	if ( !game_object_manager_address )
 		return;
 
-	const auto game_object_manager = reinterpret_cast< std::uintptr_t >( game_object_manager_address + *reinterpret_cast< std::int32_t* >( game_object_manager_address + 3 ) + 7 );
+	const auto game_object_managerl = reinterpret_cast< std::uintptr_t >( game_object_manager_address + *reinterpret_cast< std::int32_t* >( game_object_manager_address + 3 ) + 7 );
 
-	if ( !game_object_manager )
+	if ( !game_object_managerl )
 		return;
 
-	std::printf(xorstr_("[+] GameObjectManager: 0x%llx\n"), ( game_object_manager - std::uintptr_t( GetModuleHandleA( "UnityPlayer.dll" ) ) ) );
+	game_object_manager = *reinterpret_cast<void**>(game_object_managerl);
 
-	std::thread etc_iteration( &camera_loop_thread, *reinterpret_cast< void** >( game_object_manager ) );	
+	std::printf(xorstr_("[+] GameObjectManager: 0x%llx\n"), ( game_object_managerl - std::uintptr_t( GetModuleHandleA( "UnityPlayer.dll" ) ) ) );
 
-	while ( true )
-	{
-		//std::lock_guard guard( entity_mutex );
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-		if (entities.empty())
-			continue;
-
-		local_player = entities.front();
-
-		/*for ( const auto& entity : entities )
-		{
-			if ( !entity )
-				continue;
-
-			NULL_CHECK(entity->player_model);
-
-			if (utils::game::is_local_player(entity->player_model))
-			{
-				local_player = entity;
-			}
-		}*/
-	}
+	RunOverlay();
 
 	/*should_exit = true;
 	entity_iteration.join( );
@@ -854,9 +699,7 @@ void __stdcall Init()
 	printf(xorstr_("\n\ttsur\n"));
 	printf(xorstr_("\tCopyright (c) xcheats.cc - All rights reserved\n\n"));
 
-	printf(xorstr_("[>] Hijacking threads...\n"));
-	HijackThread((DWORD64)main_thread, TARGET_THREAD);
-	HijackThread((DWORD64)RunOverlay, TARGET_THREAD + 1);
+	main_thread();
 }
 
 bool __stdcall DllMain( HMODULE module, std::uint32_t call_reason, void* )
@@ -870,11 +713,8 @@ bool __stdcall DllMain( HMODULE module, std::uint32_t call_reason, void* )
 		freopen_s(reinterpret_cast<FILE**>(stdin), "CONIN$", "r", stdin);
 		freopen_s(reinterpret_cast<FILE**>(stdout), "CONOUT$", "w", stdout);
 		
-		if ( const auto handle = CreateThread( nullptr, 0, reinterpret_cast< LPTHREAD_START_ROUTINE >( main_thread ), module, 0, nullptr ); handle != NULL )
+		if ( const auto handle = CreateThread( nullptr, 0, reinterpret_cast< LPTHREAD_START_ROUTINE >( Init ), module, 0, nullptr ); handle != NULL )
 			CloseHandle( handle );
-
-		if (const auto handle = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(RunOverlay), module, 0, nullptr); handle != NULL)
-			CloseHandle(handle);
 	}
 	else 
 	{
