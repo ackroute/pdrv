@@ -176,6 +176,23 @@ namespace utils
 
 			return aim_angle.x + aim_angle.y;
 		}
+
+		__forceinline geo::vec3_t clamb_angles(geo::vec3_t aim_angle)
+		{
+			if (aim_angle.x > 180.f)
+				aim_angle.x -= 360.f;
+			else if (aim_angle.x < -180.f)
+				aim_angle.x += 360.f;
+
+			if (aim_angle.y > 180.f)
+				aim_angle.y -= 360.f;
+			else if (aim_angle.y < -180.f)
+				aim_angle.y += 360.f;
+
+			aim_angle.make_absolute();
+
+			return aim_angle;
+		}
 	}
 	namespace render
 	{
