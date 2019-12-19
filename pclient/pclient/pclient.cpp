@@ -32,9 +32,9 @@
 #include <string>
 
 //#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\pdrv\\tsar\\x64\\Release\\tsur.dll"
-#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\pdrv\\tsar\\x64\\Debug\\tsur_debug.dll"
-//#define TARGET_DLL_ADDRESS L"tsur.dll"
-#define TARGET_PROCESS L"RustClient.exe"
+#define TARGET_DLL_ADDRESS L"C:\\Users\\Samuel Tulach\\Desktop\\pdrv\\xepa\\build\\xepa.dll"
+//#define TARGET_PROCESS L"RustClient.exe"
+#define TARGET_PROCESS L"r5apex.exe"
 #define TARGET_THREAD 3
 
 #define CODE_DISABLE 0x1601
