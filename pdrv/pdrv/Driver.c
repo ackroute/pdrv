@@ -119,7 +119,7 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING Registry
 	UNREFERENCED_PARAMETER(RegistryPath);
 	
 	// Print some copyright because that's what matters the most
-	Log("\n\npdrv\nCopyright (c) 2019 xcheats.cc - All rights reserved\n\n");
+	Log("\n\npdrv\n");
 
 	// Hook NtQueryIntervalProfile
 	Log("[>] Hooking functions...");
