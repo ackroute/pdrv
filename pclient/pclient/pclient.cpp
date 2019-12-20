@@ -237,7 +237,6 @@ void End()
 int main()
 {
 	printf(xorstr_("\n\tpclient\n"));
-	printf(xorstr_("\tCopyright (c) xcheats.cc - All rights reserved\n\n"));
 
 	printf(xorstr_("[>] Initialiting...\n"));
 
