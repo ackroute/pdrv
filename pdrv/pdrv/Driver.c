@@ -6,6 +6,12 @@
  |_|
 
  Copyright (c) 2019 Samuel Tulach - All rights reserved
+ 
+ Used sources:
+  - BlackBone Driver
+    - (c) 2015 DarthTon
+    - MIT
+    - https://github.com/DarthTon/Blackbone
 
  Tested on Windows 10 x64 1909 18363.476
 */
